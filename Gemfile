@@ -4,3 +4,5 @@ git_source(:github) {|repo_name| "https://github.com/#{repo_name}" }
 
 # Specify your gem's dependencies in omniauth-realme.gemspec
 gemspec
+
+gem 'rubocop', group: [:development, :test], require: false
