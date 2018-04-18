@@ -1,0 +1,38 @@
+AllCops:
+  DisplayStyleGuide: true
+  DisplayCopNames: true
+  Exclude:
+    - 'db/**/*'
+    - 'config/**/*'
+    - 'script/**/*'
+    - 'bin/**/*'
+    - 'Gemfile'
+    - 'Gemfile.lock'
+    - 'node_modules/**/*'
+Documentation:
+  Enabled: false
+Rails:
+  Enabled: true
+Rails/FilePath:
+  Exclude:
+    - 'spec/**/*'
+Metrics/LineLength:
+  Max: 150
+  Exclude:
+    - 'spec/**/*'
+Metrics/MethodLength:
+  Max: 20
+Metrics/BlockLength:
+  Exclude:
+    - 'spec/**/*'
+    - '**/*.rake'
+    - 'Rakefile'
+Metrics/AbcSize:
+  Max: 20
+Style/SymbolArray:
+  Enabled: false
+Style/WordArray:
+  Enabled: false
+
+Lint/ReturnInVoidContext:
+  Enabled: false 
