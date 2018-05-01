@@ -1,11 +1,14 @@
 # frozen_string_literal: true
 
-RSpec.describe Omniauth::Realme do
+require 'spec_helper'
+
+RSpec.describe OmniAuth::Strategies::Realme do
   it 'has a version number' do
     expect(Omniauth::Realme::VERSION).not_to be nil
   end
-
-  it 'does something useful' do
-    expect(false).to eq(true)
+  
+  it 'loads the Omnauth dependanices' do
+    binding.pry
+    expect(OmniAuth::Strategies).to_not be_nil
   end
 end

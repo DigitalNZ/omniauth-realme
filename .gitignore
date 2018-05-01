@@ -13,6 +13,8 @@
 /.yardoc
 /_yardoc/
 /doc/
+/ruby/**/*
+spec/secrets/**/*
 
 # rspec failure tracking
 .rspec_status
