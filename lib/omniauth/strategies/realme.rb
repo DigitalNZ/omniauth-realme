@@ -4,13 +4,13 @@ module OmniAuth
   module Strategies
     class Realme
       include OmniAuth::Strategy
-      autoload :AuthRequest,      'omniauth/strategies/realme/auth_request'
-      autoload :AuthResponse,     'omniauth/strategies/realme/auth_response'
+      autoload :AuthRequest,  'omniauth/strategies/realme/auth_request'
+      autoload :AuthResponse, 'omniauth/strategies/realme/auth_response'
+      
+      # Fixed OmniAuth options
+      option :provider, 'realme'
 
-      option :format, 'urn:oasis:names:tc:SAML:2.0:nameid-format:persistent'
-      option :request_authn_context_class_ref, 'urn:nzl:govt:ict:stds:authn:deployment:GLS:SAML:2.0:ac:classes:ModStrength'
-
-      def request_phase
+      def request
         OmniAuth::Strategies::Realme::AuthRequest.new(self.class.default_options).call
       end
 

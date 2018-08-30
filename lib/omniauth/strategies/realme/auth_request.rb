@@ -15,13 +15,16 @@ module OmniAuth
             @relay_state  = relay_state
             @destination  = options.fetch('destination')
             @provider     = options.fetch('provider')
+            @issuer       = options.fetch('issuer')
             @allow_create = options.fetch('allow_create', 'true')
             @format       = options.fetch('format')
-            @ssl_sp_pem   = File.open(options.fetch('ssl_sp_pem'))
-            @issuer       = options.fetch('issuer')
-            @idp_sso_target_url     = options.fetch('idp_sso_target_url')
+            @rsa_private_key  = OpenSSL::PKey::RSA.new(options.fetch('private_key')) 
+            @request_authn_context_class_ref  = options.fetch('auth_strenght')
+            @idp_target_url = options.fetch('idp_target_url')
+
+            # idp_cert is not getting used as its the public ssl cert
+            # @idp_cert     = OpenSSL::X509::Certificate.new(options.fetch('idp_cert'))
             # @name_identifier_format = options.fetch('name_identifier_format')
-            @request_authn_context_class_ref  = options.fetch('request_authn_context_class_ref')
             # @assertion_consumer_service_index = options.fetch('name_identifier_format')
 
             # TODO check if this is creating a proper closure
@@ -41,7 +44,6 @@ AssertionConsumerServiceIndex="0"
 Destination="#{@destination}"
 ID="_#{UUID.new.generate}"
 IssueInstant="#{Time.now.utc.strftime("%Y-%m-%dT%H:%M:%SZ")}"
-ProviderName="#{@provider}"
 Version="2.0">
 <saml:Issuer>#{@issuer}</saml:Issuer>
 <samlp:NameIDPolicy AllowCreate="#{@allow_create}" Format="#{@format}"></samlp:NameIDPolicy>
@@ -50,25 +52,23 @@ Version="2.0">
 </samlp:RequestedAuthnContext>
 </samlp:AuthnRequest>
           REQUEST
-          
+          #ProviderName="#{@provider}" # from above Version
+
+          puts req
+
           compress_request = Zlib.deflate(req, Zlib::BEST_COMPRESSION)[2..-5] # What are the magic indexs??
 
           base64_request = [compress_request].pack(BASE64_DIRECTIVE)
           encoded_request = CGI.escape(base64_request)
 
           request = "SAMLRequest=#{encoded_request}"
-          # request = "SAMLRequest=#{req}"
-          # request.concat("&RelayState=#{@relayState}") if @relayState
-          # request.concat('&RelayState=a63b1904850ec370d500447f13fba000')
-          request.concat("&SigAlg=#{CGI.escape('http://www.w3.org/2000/09/xmldsig#rsa-sha1')}")
+          request.concat("&RelayState=#{@relayState}") if @relayState
+          request.concat("&SigAlg=#{CGI.escape('http://www.w3.org/2001/04/xmldsig-more#rsa-sha256')}")
 
-          sig = OpenSSL::PKey::RSA.new(@ssl_sp_pem).sign(OpenSSL::Digest::SHA1.new, request)
-          request.concat("&Signature=#{CGI.escape(::Base64.encode64(sig))}")
+          sig = @rsa_private_key.sign(OpenSSL::Digest::SHA256.new, request)
 
-          "#{@idp_sso_target_url}?#{request}"
+          "#{@idp_target_url}?#{request}&Signature=#{CGI.escape(::Base64.encode64(sig))}"
         end
-
-        private
       end
     end
   end
