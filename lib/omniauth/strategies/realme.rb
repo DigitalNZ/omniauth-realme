@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'omniauth'
 
 module OmniAuth
@@ -6,7 +8,7 @@ module OmniAuth
       include OmniAuth::Strategy
       autoload :AuthRequest,  'omniauth/strategies/realme/auth_request'
       autoload :AuthResponse, 'omniauth/strategies/realme/auth_response'
-      
+
       # Fixed OmniAuth options
       option :provider, 'realme'
 
@@ -18,7 +20,7 @@ module OmniAuth
         response = OmniAuth::Strategies::Realme::AuthResponse.new(request.params['SAMLart'], self.class.default_options).call
         @name_id = response.name_id
 
-        raise OmniAuth::Error.new('RealMe Bad request') unless response.successful?
+        raise OmniAuth::Error, 'RealMe Bad request' unless response.successful?
         super
 
         uid { @name_id } # ??
@@ -36,9 +38,9 @@ OmniAuth.config.add_camelization 'realme', 'Realme'
 # - Format ( Value SHOULD be persistent, but unspecified allows the IdP to decide )
 #
 # RequestedAuthnContext
-# - RequestedAuthnContextClassRef required => urn:nzl:govt:ict:stds:authn:deployment:GLS:SAML:2.0:ac:classes:ModStrength 
+# - RequestedAuthnContextClassRef required => urn:nzl:govt:ict:stds:authn:deployment:GLS:SAML:2.0:ac:classes:ModStrength
 # - Comparison should be EXACT but supports (optinal: EXACT, MINIMUM, MAXIMUM or BETTER)
-# 
+#
 # AssertionConsumerServiceIndex set in config for intergration
 #
 # Protocol Binding Use Post binding? should be default
