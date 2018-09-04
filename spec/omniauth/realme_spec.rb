@@ -8,7 +8,6 @@ RSpec.describe OmniAuth::Strategies::Realme do
   end
   
   it 'loads the Omnauth dependanices' do
-    binding.pry
     expect(OmniAuth::Strategies).to_not be_nil
   end
 end

@@ -22,7 +22,7 @@ module OmniAuth
             @format       = options.fetch('format')
             @rsa_private_key = OpenSSL::PKey::RSA.new(options.fetch('private_key'))
             @request_authn_context_class_ref = options.fetch('auth_strenght')
-            @idp_target_url = options.fetch('idp_target_url')
+            # @idp_target_url = options.fetch('idp_target_url')
 
             # idp_cert is not getting used as its the public ssl cert
             # @idp_cert     = OpenSSL::X509::Certificate.new(options.fetch('idp_cert'))
@@ -39,13 +39,7 @@ module OmniAuth
 
         def call
           req = <<~REQUEST
-            <samlp:AuthnRequest xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion"
-            xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol"
-            AssertionConsumerServiceIndex="0"
-            Destination="#{@destination}"
-            ID="_#{UUID.new.generate}"
-            IssueInstant="#{Time.now.utc.strftime('%Y-%m-%dT%H:%M:%SZ')}"
-            Version="2.0">
+            <samlp:AuthnRequest xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" AssertionConsumerServiceIndex="0" Destination="#{@destination}" ID="_#{UUID.new.generate}" IssueInstant="#{Time.now.utc.strftime('%Y-%m-%dT%H:%M:%SZ')}" Version="2.0">
             <saml:Issuer>#{@issuer}</saml:Issuer>
             <samlp:NameIDPolicy AllowCreate="#{@allow_create}" Format="#{@format}"></samlp:NameIDPolicy>
             <samlp:RequestedAuthnContext>
@@ -55,11 +49,11 @@ module OmniAuth
           REQUEST
           # ProviderName="#{@provider}" # from above Version
 
-          puts req
-
+          req = req.delete("\n")
+          
           compress_request = Zlib.deflate(req, Zlib::BEST_COMPRESSION)[2..-5] # What are the magic indexs??
 
-          base64_request = [compress_request].pack(BASE64_DIRECTIVE)
+          base64_request = encode(compress_request) #[compress_request].pack(BASE64_DIRECTIVE) # this is the same as Base64.encode64
           encoded_request = CGI.escape(base64_request)
 
           request = "SAMLRequest=#{encoded_request}"
@@ -68,7 +62,11 @@ module OmniAuth
 
           sig = @rsa_private_key.sign(OpenSSL::Digest::SHA256.new, request)
 
-          "#{@idp_target_url}?#{request}&Signature=#{CGI.escape(::Base64.encode64(sig))}"
+          "#{@destination}?#{request}&Signature=#{CGI.escape(encode(sig))}"
+        end
+
+        def encode(string)
+          ::Base64.encode64(string).delete("\n")
         end
       end
     end

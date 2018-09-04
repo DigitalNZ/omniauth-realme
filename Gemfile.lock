@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    omniauth-realme (0.1.0)
+    omniauth-realme (0.0.1)
       nokogiri
       omniauth
       savon

@@ -1,8 +1,11 @@
 OmniAuth::Strategies::Realme.configure do |config|
-  config.provider    = 'Sample Service Provider'
-  config.issuer      = 'https://www.sample-client.co.nz/onlineservices/service1'
-  # config.destination = 'https://realme.govt.nz/sso/SSORedirect/metaAlias/logon-idp'
-  config.destination = 'https://www.ite.logon.realme.govt.nz/sso/logon/metaAlias/logon/logonidp'
-  config.ssl_sp_pem  = 'spec/secrets/mts_mutual_ssl_sp.pem'
-  config.idp_sso_target_url = 'https://mts.realme.govt.nz/logon-mts/mtsEntryPoint'
+  config.provider   = 'Sample Service Provider'
+  onfig.destination = 'https://mts.realme.govt.nz/logon-mts/mtsEntryPoint'
+  config.format = 'urn:oasis:names:tc:SAML:2.0:nameid-format:persistent'
+  config.issuer = 'https://sample-service-provider.org.nz/mts2/sp'
+  config.idp_cert = '' # REALME idp_cert
+  config.private_key = '' # REALME private_key
+  config.idp_metadata = nil
+  config.idp_target_url = 'https://www.mts.logon.realme.govt.nz/sso/logon/metaAlias/logon/logonidp'
+  config.auth_strenght = 'urn:nzl:govt:ict:stds:authn:deployment:GLS:SAML:2.0:ac:classes:ModStrength'
 end
