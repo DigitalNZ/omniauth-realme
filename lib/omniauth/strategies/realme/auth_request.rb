@@ -10,8 +10,6 @@ module OmniAuth
   module Strategies
     class Realme
       class AuthRequest
-        BASE64_DIRECTIVE = 'm' # See Array#Pack for more details https://ruby-doc.org/core-2.5.0/Array.html#method-i-pack
-
         def initialize(options, relay_state = nil)
           begin
             @relay_state  = relay_state
@@ -22,12 +20,6 @@ module OmniAuth
             @format       = options.fetch('format')
             @rsa_private_key = OpenSSL::PKey::RSA.new(options.fetch('private_key'))
             @request_authn_context_class_ref = options.fetch('auth_strenght')
-            # @idp_target_url = options.fetch('idp_target_url')
-
-            # idp_cert is not getting used as its the public ssl cert
-            # @idp_cert     = OpenSSL::X509::Certificate.new(options.fetch('idp_cert'))
-            # @name_identifier_format = options.fetch('name_identifier_format')
-            # @assertion_consumer_service_index = options.fetch('name_identifier_format')
 
             # TODO: check if this is creating a proper closure
           rescue Errno::ENOENT => e
@@ -48,12 +40,12 @@ module OmniAuth
             </samlp:AuthnRequest>
           REQUEST
           # ProviderName="#{@provider}" # from above Version
-
+          puts req
           req = req.delete("\n")
           
           compress_request = Zlib.deflate(req, Zlib::BEST_COMPRESSION)[2..-5] # What are the magic indexs??
 
-          base64_request = encode(compress_request) #[compress_request].pack(BASE64_DIRECTIVE) # this is the same as Base64.encode64
+          base64_request = encode(compress_request)
           encoded_request = CGI.escape(base64_request)
 
           request = "SAMLRequest=#{encoded_request}"

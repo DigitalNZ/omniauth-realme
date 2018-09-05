@@ -12,19 +12,19 @@ module OmniAuth
       # Fixed OmniAuth options
       option :provider, 'realme'
 
-      def request
-        OmniAuth::Strategies::Realme::AuthRequest.new(self.class.default_options).call
+      def request_phase
+        redirect( OmniAuth::Strategies::Realme::AuthRequest.new(self.class.default_options).call )
       end
 
-      def callback_phase
-        response = OmniAuth::Strategies::Realme::AuthResponse.new(request.params['SAMLart'], self.class.default_options).call
-        @name_id = response.name_id
+      # def callback_phase
+      #   response = OmniAuth::Strategies::Realme::AuthResponse.new(request.params['SAMLart'], self.class.default_options).call
+      #   @name_id = response.name_id
 
-        raise OmniAuth::Error, 'RealMe Bad request' unless response.successful?
-        super
+      #   raise OmniAuth::Error, 'RealMe Bad request' unless response.successful?
+      #   super
 
-        uid { @name_id } # ??
-      end
+      #   uid { @name_id } # ??
+      # end
     end
   end
 end
