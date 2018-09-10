@@ -13,18 +13,12 @@ module OmniAuth
       option :provider, 'realme'
 
       def request_phase
-        redirect( OmniAuth::Strategies::Realme::AuthRequest.new(self.class.default_options).call )
+        redirect OmniAuth::Strategies::Realme::AuthRequest.new(self.class.default_options).call
       end
 
-      # def callback_phase
-      #   response = OmniAuth::Strategies::Realme::AuthResponse.new(request.params['SAMLart'], self.class.default_options).call
-      #   @name_id = response.name_id
-
-      #   raise OmniAuth::Error, 'RealMe Bad request' unless response.successful?
-      #   super
-
-      #   uid { @name_id } # ??
-      # end
+      def callback_phase
+        OmniAuth::Strategies::Realme::AuthResponse.new(request.params['SAMLResponse'], self.class.default_options).call
+      end
     end
   end
 end
@@ -55,3 +49,13 @@ OmniAuth.config.add_camelization 'realme', 'Realme'
 # - OASIS SAML V2.0 requirement is: MAY be provided. MUST NOT exceed 80 bytes in length and SHOULD be integrity protected by the Service Provider.
 # - RealMe login service requirement is: MAY be provided and will be ignored.
 # - Recommendation: Can use to meet service provider specific requirements.
+#
+#
+#        # response = OmniAuth::Strategies::Realme::AuthResponse.new(request.params['SAMLart'], self.class.default_options).call
+        # @name_id = response.name_id
+
+        # raise OmniAuth::Error, 'RealMe Bad request' unless response.successful?
+        # super
+
+        # uid { @name_id } # ??
+
