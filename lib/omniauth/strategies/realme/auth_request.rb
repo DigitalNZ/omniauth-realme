@@ -21,7 +21,6 @@ module OmniAuth
             @rsa_private_key = OpenSSL::PKey::RSA.new(options.fetch('private_key'))
             @request_authn_context_class_ref = options.fetch('auth_strenght')
 
-            # TODO: check if this is creating a proper closure
           rescue Errno::ENOENT => e
             raise OmniAuth::Error, "RealMe ssl sp pem cannot be found #{e}"
           rescue KeyError => e
@@ -39,11 +38,9 @@ module OmniAuth
             </samlp:RequestedAuthnContext>
             </samlp:AuthnRequest>
           REQUEST
-          # ProviderName="#{@provider}" # from above Version
-          puts req
           req = req.delete("\n")
           
-          compress_request = Zlib.deflate(req, Zlib::BEST_COMPRESSION)[2..-5] # What are the magic indexs??
+          compress_request = Zlib.deflate(req, Zlib::BEST_COMPRESSION)[2..-5]
 
           base64_request = encode(compress_request)
           encoded_request = CGI.escape(base64_request)
