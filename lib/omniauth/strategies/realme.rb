@@ -3,22 +3,21 @@
 require 'omniauth'
 require 'ruby-saml'
 
-
 module OmniAuth
   module Strategies
     class Realme
       include OmniAuth::Strategy
-      autoload :AuthRequest,  'omniauth/strategies/realme/auth_request'
+      autoload :AuthRequest, 'omniauth/strategies/realme/auth_request'
 
       # Fixed OmniAuth options
       option :provider, 'realme'
 
       def request_phase
-        redirect OmniAuth::Strategies::Realme::AuthRequest.new(self.options).call
+        redirect OmniAuth::Strategies::Realme::AuthRequest.new(options).call
       end
 
       def callback_phase
-        response = ::OneLogin::RubySaml::Response.new(request.params['SAMLResponse'], settings: saml_settings, skip_subject_confirmation: true )
+        response = ::OneLogin::RubySaml::Response.new(request.params['SAMLResponse'], settings: saml_settings, skip_subject_confirmation: true)
 
         if response.is_valid?
           session[:uid] = response.nameid

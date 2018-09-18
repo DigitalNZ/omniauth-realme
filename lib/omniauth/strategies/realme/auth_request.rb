@@ -20,7 +20,6 @@ module OmniAuth
             @format       = options.fetch('format')
             @rsa_private_key = OpenSSL::PKey::RSA.new(options.fetch('private_key'))
             @request_authn_context_class_ref = options.fetch('auth_strenght')
-
           rescue Errno::ENOENT => e
             raise OmniAuth::Error, "RealMe ssl sp pem cannot be found #{e}"
           rescue KeyError => e
@@ -39,7 +38,7 @@ module OmniAuth
             </samlp:AuthnRequest>
           REQUEST
           req = req.delete("\n")
-          
+
           compress_request = Zlib.deflate(req, Zlib::BEST_COMPRESSION)[2..-5]
 
           base64_request = encode(compress_request)
