@@ -17,7 +17,7 @@ module OmniAuth
       end
 
       def callback_phase
-        response = ::OneLogin::RubySaml::Response.new(request.params['SAMLResponse'], settings: saml_settings, skip_subject_confirmation: true)
+        response = ::OneLogin::RubySaml::Response.new(request.params['SAMLResponse'], settings: saml_settings) #, skip_subject_confirmation: true)
 
         if response.is_valid?
           session[:uid] = response.nameid
@@ -33,9 +33,10 @@ module OmniAuth
 
       def saml_settings
         settings = OneLogin::RubySaml::Settings.new
-        settings.issuer                 = options.fetch('issuer')
-        settings.idp_sso_target_url     = options.fetch('destination')
-        settings.name_identifier_format = options.fetch('format')
+        settings.issuer                         = options.fetch('issuer')
+        settings.idp_sso_target_url             = options.fetch('destination')
+        settings.name_identifier_format         = options.fetch('format')
+        settings.assertion_consumer_service_url = options.fetch('assertion_consumer_service_url')
 
         settings.idp_cert       = options.fetch('idp_cert')
         settings.idp_cert_multi = { signing: [settings.idp_cert] }
