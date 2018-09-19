@@ -17,7 +17,7 @@ module OmniAuth
       end
 
       def callback_phase
-        response = ::OneLogin::RubySaml::Response.new(request.params['SAMLResponse'], settings: saml_settings) #, skip_subject_confirmation: true)
+        response = ::OneLogin::RubySaml::Response.new(request.params['SAMLResponse'], settings: saml_settings)
 
         if response.is_valid?
           session[:uid] = response.nameid

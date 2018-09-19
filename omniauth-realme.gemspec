@@ -33,9 +33,7 @@ Gem::Specification.new do |spec|
   spec.require_paths = ['lib']
 
   spec.add_dependency 'omniauth'
-  spec.add_dependency 'savon'
   spec.add_dependency 'uuid'
-  spec.add_dependency 'nokogiri'
   spec.add_dependency 'ruby-saml'
 
   spec.add_development_dependency 'bundler'

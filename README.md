@@ -51,7 +51,7 @@ class ApplicationController < ActionController::Base
   private
 
   def configure_permitted_parameters
-    # :uid, :provider and any non default fields need to be added here
+    # :uid, :provider and any new fields need to be added here
     devise_parameter_sanitizer.permit(:sign_up, keys: [:password, :password_confirmation, :email, :uid, :provider])
   end
 
