@@ -13,7 +13,8 @@ module OmniAuth
       option :provider, 'realme'
 
       def request_phase
-        redirect OmniAuth::Strategies::Realme::AuthRequest.new(options).call
+        req = OneLogin::RubySaml::Authrequest.new
+        redirect req.create(saml_settings, 'SigAlg' => 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256')
       end
 
       def callback_phase
@@ -32,22 +33,21 @@ module OmniAuth
       private
 
       def saml_settings
-        settings = OneLogin::RubySaml::Settings.new
-        settings.issuer                         = options.fetch('issuer')
-        settings.idp_sso_target_url             = options.fetch('destination')
-        settings.name_identifier_format         = options.fetch('format')
-        settings.assertion_consumer_service_url = options.fetch('assertion_consumer_service_url')
+        idp_metadata_parser = OneLogin::RubySaml::IdpMetadataParser.new
+        settings = idp_metadata_parser.parse(File.read(options.fetch('idp_service_metadata')))
 
-        settings.idp_cert       = options.fetch('idp_cert')
-        settings.idp_cert_multi = { signing: [settings.idp_cert] }
-        settings.private_key    = options.fetch('private_key')
+          settings.issuer                         = options.fetch('issuer')
+          settings.assertion_consumer_service_url = options.fetch('assertion_consumer_service_url')
+          settings.private_key                    = options.fetch('private_key')
 
-        settings.soft = false
-        settings.security = {}
-        settings.security[:signature_method] = XMLSecurity::Document::RSA_SHA1
-        settings.security[:digest_method]    = XMLSecurity::Document::SHA1
+          settings.authn_context = 'urn:nzl:govt:ict:stds:authn:deployment:GLS:SAML:2.0:ac:classes:ModStrength'
+          settings.protocol_binding = "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"
+          settings.assertion_consumer_service_binding = "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"
+          settings.soft = false
 
-        settings
+          settings.security[:authn_requests_signed] = true
+
+          settings
       end
     end
   end
