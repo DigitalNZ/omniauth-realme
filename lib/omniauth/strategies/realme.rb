@@ -14,6 +14,8 @@ module OmniAuth
 
       def request_phase
         req = OneLogin::RubySaml::Authrequest.new
+        tmp = req.create(saml_settings, 'SigAlg' => 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256')
+        Rails.logger.info(tmp)
         redirect req.create(saml_settings, 'SigAlg' => 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256')
       end
 
@@ -40,7 +42,7 @@ module OmniAuth
           settings.assertion_consumer_service_url = options.fetch('assertion_consumer_service_url')
           settings.private_key                    = options.fetch('private_key')
 
-          settings.authn_context = 'urn:nzl:govt:ict:stds:authn:deployment:GLS:SAML:2.0:ac:classes:ModStrength'
+          settings.authn_context = 'urn:nzl:govt:ict:stds:authn:deployment:GLS:SAML:2.0:ac:classes:LowStrength'
           settings.protocol_binding = "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"
           settings.assertion_consumer_service_binding = "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"
           settings.soft = false
