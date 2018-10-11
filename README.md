@@ -1,6 +1,10 @@
 # omniauth-realme
 Omniauth strategy for New Zealands secure online identity verification service.
 
+This Gem has been developed for the intension of using [devise](https://github.com/plataformatec/devise) as the account model with Realme SSO intergation.
+
+Not Using *ruby* but need to itergrate? Use this gem is a baseline and find a suitable Library on [onelogin's](https://github.com/onelogin) github account.
+
 ## Installation
 
 Add this line to your application's Gemfile:
@@ -15,9 +19,9 @@ And then execute:
     $ bundle
 
 ### Realme
+To test that you have installed the Gem correctly intergrate with their message testing servies [RealMe MTS](https://mts.realme.govt.nz/logon-mts/home) first, followed by ITE then Production intergrations.
 
-You will need to set up a integation with realme
-[RealMe MTS](https://mts.realme.govt.nz/logon-mts/home) is a great place to start!
+You will need to be setup your applications intergration via their [developers website](https://developers.realme.govt.nz) for ITE and production set up.
 
 ### Devise
 Setup
@@ -28,16 +32,17 @@ Devise.setup do |d_config|
 end
 ```
 
+Here we configure the [ruby-saml](https://github.com/onelogin/ruby-saml) gem.
+Realme provides the nessassery `service-metadata.xml` files for their side of the intergation they can be found on this [page](https://developers.realme.govt.nz/how-realme-works/technical-integration-steps#e75)
+
 ```ruby
 # config/initializers/realme_omniauth.rb
 OmniAuth::Strategies::Realme.configure do |config|
-  config.destination = 'https://endpoint.realme.govt.nz/<location>'                      # Realme endpoint
-  config.name_identifier_format = 'urn:oasis:names:tc:SAML:2.0:nameid-format:persistent' # name_identifier_format
-  config.issuer = 'http://myapp/<issuer>'                                                # Website issuer namespace
-  config.assertion_consumer_service_url = 'http://myapp.com/users/auth/realme/callback'  # Callback url
-  config.idp_cert = 'X509 idp_cert'                                                      # Cert used in response for validating the sender
-  config.private_key = 'Realme SLL private cert '                                        # Sign the request saml and decrypt response
-  config.auth_strenght = 'urn:nzl:govt:ict:stds:authn:deployment:GLS:SAML:2.0:ac:classes:ModStrength' # default Strenght
+  config.issuer = 'http://myapp/<issuer>'                                                               # Website issuer namespace
+  config.assertion_consumer_service_url = 'http://myapp.com/users/auth/realme/callback'                 # Callback url
+  config.private_key = 'Realme SLL private cert'                                                        # Sign the request saml and decrypt response
+  config.idp_service_metadata = Rails.root.join('path', 'to', 'logon-service-metadata.xml')             # Realme login service xml file
+  config.auth_strenght = 'urn:nzl:govt:ict:stds:authn:deployment:GLS:SAML:2.0:ac:classes:LowStrength'   # default Strenght
 end
 ```
 
@@ -59,6 +64,8 @@ class ApplicationController < ActionController::Base
 end
 ```
 
+The customer uid will come through in their session as `session[:uid]`
+
 ```ruby
 # app/controllers/users/omniauth_callbacks_controller.rb
 require 'devise'
@@ -69,7 +76,8 @@ module Users
 
     def realme
       @user = User.from_omniauth('realme', session[:uid])
-
+      
+      # Render the devise default sign in form for a user to input their details
       unless @user.valid?
         @user.errors.each { |err| @user.errors.delete(err) }
 
