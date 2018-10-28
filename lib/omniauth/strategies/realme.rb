@@ -52,13 +52,19 @@ module OmniAuth
       def default_error_messages(error)
         case error
         when /Timeout/
-          'Your RealMe session has expired due to inactivity.'
+          '<p>Your RealMe session has expired due to inactivity.</p>'
         when /NoAvailableIDP/
-          'RealMe reported that the TXT service, Google Authenticator or the RealMe token service is not available. You may try again later. If the problem persists, please contact RealMe Help Desk on 0800 664 774.'
-        when /InternalError/
-          ' RealMe was unable to process your request due to a RealMe internal error. Please try again. If the problem persists, please contact RealMe Help Desk on 0800 664 774.'
-        else
-          "RealMe reported a serious application error with the message #{error}. Please try again later. If the problem persists, please contact RealMe Help Desk on 0800 664 774."
+          "<p>RealMe reported that the TXT service, Google Authenticator or the RealMe token service is not available.</p>
+           <p>You may try again later. If the problem persists, please contact RealMe Help <a href='tel:'0800664774>0800 664 774</a>.</p>"
+        when /AuthnFailed/
+          '<p>You have chosen to leave the RealMe login screen without completing the login process.</p>'
+          when /InternalError/
+            "<p>RealMe was unable to process your request due to a RealMe internal error.</p>
+              <p>Please try again. If the problem persists, please contact RealMe Help Desk on <a href='tel:'0800664774>0800 664 774</a>.</p>"
+          else
+            "<p>RealMe reported a serious application error with the message:</p>
+              <p>#{error}</p>
+              <p>Please try again later. If the problem persists, please contact RealMe Help Desk on <a href='tel:'0800664774>0800 664 774</a>.</p>"
         end
       end
     end
