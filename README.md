@@ -75,7 +75,7 @@ module Users
     skip_before_action :verify_authenticity_token
 
     def realme
-      return redirect_to new_user_session_path, alert: session.delete(:realme_error) if session[:realme_error].present?
+      return redirect_to new_user_session_path, alert: session.delete(:realme_error)[:message] if session[:realme_error].present? || session[:uid].blank?
 
       @user = User.from_omniauth('realme', session.delete(:uid))
 

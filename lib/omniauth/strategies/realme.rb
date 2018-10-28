@@ -23,7 +23,10 @@ module OmniAuth
         if response.is_valid?
           session[:uid] = response.nameid
         else
-          session[:realme_error] = default_error_messages(response.errors.join)
+          session[:realme_error] = { 
+            error: response.errors.join()[/=> (\S+) ->/,1],
+            message: default_error_messages(response.errors.join)
+          }
         end
 
         @raw_info = response
