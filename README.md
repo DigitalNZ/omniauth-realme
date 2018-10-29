@@ -75,17 +75,19 @@ module Users
     skip_before_action :verify_authenticity_token
 
     def realme
-      @user = User.from_omniauth('realme', session[:uid])
-      
-      # Render the devise default sign in form for a user to input their details
+      return redirect_to new_user_session_path, alert: session.delete(:realme_error)[:message] if session[:realme_error].present? || session[:uid].blank?
+
+      @user = User.from_omniauth('realme', session.delete(:uid))
+
       unless @user.valid?
         @user.errors.each { |err| @user.errors.delete(err) }
 
-        flash.notice = 'RealMe sign in successful, please fill in your user details.'
+        flash.notice = 'RealMe login successful, please fill in your user details.'
         return render 'devise/registrations/new.html.haml'
       end
 
-      flash.notice = 'RealMe sign in successful.'
+      flash.notice = 'RealMe login successful.'
+
       sign_in_and_redirect @user
     end
   end
