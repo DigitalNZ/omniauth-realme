@@ -2,6 +2,13 @@
 Omniauth strategy for New Zealands secure online identity verification service.
 
 This Gem has been developed for the intension of using [devise](https://github.com/plataformatec/devise) as the account model with Realme SSO intergation.
+This Gem covers all of the SAML client requirements for RealMe intergations including the RealMe's default error messages.
+
+You will need to set up your frontend login pages to match [RealMe's branding guide lines](https://developers.realme.govt.nz/how-to-integrate/application-design-and-branding-guide/realme-page-elements/)
+We suggest you use their assets in a zip file their page.
+
+Getting to Production:
+You will need to complete the [RealMe Operational handover checklist](https://developers.realme.govt.nz/how-to-integrate/getting-to-production/operational-handover-checklist/) `login service` form to gain access to RealMe production environments.
 
 Not Using *ruby* but need to itergrate? Use this gem is a baseline and find a suitable Library on [onelogin's](https://github.com/onelogin) github account.
 
@@ -38,11 +45,21 @@ Realme provides the nessassery `service-metadata.xml` files for their side of th
 ```ruby
 # config/initializers/realme_omniauth.rb
 OmniAuth::Strategies::Realme.configure do |config|
-  config.issuer = 'http://myapp/<issuer>'                                                               # Website issuer namespace
-  config.assertion_consumer_service_url = 'http://myapp.com/users/auth/realme/callback'                 # Callback url
-  config.private_key = 'Realme SLL private cert'                                                        # Sign the request saml and decrypt response
-  config.idp_service_metadata = Rails.root.join('path', 'to', 'logon-service-metadata.xml')             # Realme login service xml file
-  config.auth_strenght = 'urn:nzl:govt:ict:stds:authn:deployment:GLS:SAML:2.0:ac:classes:LowStrength'   # default Strenght
+  # Website issuer namespace
+  config.issuer = 'http://myapp/<issuer>/<access>'
+
+  # Callback url
+  config.assertion_consumer_service_url = 'http://myapp.com/users/auth/realme/callback'
+  
+  # Sign the request saml and decrypt response
+  config.private_key = 'Realme SLL private cert'
+
+  # Realme login service xml file.
+  # You will need to download the different XML files for the different environments found here: https://developers.realme.govt.nz/how-realme-works/technical-integration-steps/
+  config.idp_service_metadata = Rails.root.join('path', 'to', 'logon-service-metadata.xml')
+  
+  # default Strenght
+  config.auth_strenght = 'urn:nzl:govt:ict:stds:authn:deployment:GLS:SAML:2.0:ac:classes:LowStrength'   
 end
 ```
 
@@ -64,10 +81,9 @@ class ApplicationController < ActionController::Base
 end
 ```
 
-The customer uid will come through in their session as `session[:uid]`
+The customer `uid` will come through in their session as `session[:uid]`
 
 ```ruby
-# app/controllers/users/omniauth_callbacks_controller.rb
 require 'devise'
 
 module Users
@@ -75,17 +91,19 @@ module Users
     skip_before_action :verify_authenticity_token
 
     def realme
-      @user = User.from_omniauth('realme', session[:uid])
-      
-      # Render the devise default sign in form for a user to input their details
+      return redirect_to new_user_session_path, alert: session.delete(:realme_error)[:message] if session[:realme_error].present? || session[:uid].blank?
+
+      @user = User.from_omniauth('realme', session.delete(:uid))
+
       unless @user.valid?
         @user.errors.each { |err| @user.errors.delete(err) }
 
-        flash.notice = 'RealMe sign in successful, please fill in your user details.'
+        flash.notice = 'RealMe login successful, please fill in your user details.'
         return render 'devise/registrations/new.html.haml'
       end
 
-      flash.notice = 'RealMe sign in successful.'
+      flash.notice = 'RealMe login successful.'
+
       sign_in_and_redirect @user
     end
   end
@@ -119,8 +137,8 @@ class User < ApplicationRecord
 end
 ```
 
-Migration
-  - You will need to add these extra fields and an index
+Migrations
+  - You will need to add `provider` and `uid` to your model and index the `uid`
 ```ruby
 # db/migrate/<timestamp>_devise_create_users.rb
 class DeviseCreateUsers < ActiveRecord::Migration[5.2]
