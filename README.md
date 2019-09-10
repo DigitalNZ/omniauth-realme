@@ -28,7 +28,7 @@ And then execute:
 ### Realme
 To test that you have installed the Gem correctly integrate with their message testing servies [RealMe MTS](https://mts.realme.govt.nz/logon-mts/home) first, followed by ITE then Production integrations.
 
-You will need to be setup your applications integration via their [developers website](https://developers.realme.govt.nz) for ITE and production set up.
+You will need to set up your applications integration via their [developers website](https://developers.realme.govt.nz) for ITE and production.
 
 ### Devise
 Setup
@@ -50,16 +50,16 @@ OmniAuth::Strategies::Realme.configure do |config|
 
   # Callback url
   config.assertion_consumer_service_url = 'http://myapp.com/users/auth/realme/callback'
-  
+
   # Sign the request saml and decrypt response
   config.private_key = 'Realme SLL private cert'
 
   # Realme login service xml file.
   # You will need to download the different XML files for the different environments found here: https://developers.realme.govt.nz/how-realme-works/technical-integration-steps/
   config.idp_service_metadata = Rails.root.join('path', 'to', 'logon-service-metadata.xml')
-  
-  # default Strenght
-  config.auth_strenght = 'urn:nzl:govt:ict:stds:authn:deployment:GLS:SAML:2.0:ac:classes:LowStrength'   
+
+  # default strength
+  config.auth_strength = 'urn:nzl:govt:ict:stds:authn:deployment:GLS:SAML:2.0:ac:classes:LowStrength'   
 end
 ```
 
