@@ -1,16 +1,16 @@
 # omniauth-realme
-Omniauth strategy for New Zealands secure online identity verification service.
+Omniauth strategy for New Zealand's secure online identity verification service.
 
-This Gem has been developed for the intension of using [devise](https://github.com/plataformatec/devise) as the account model with Realme SSO intergation.
-This Gem covers all of the SAML client requirements for RealMe intergations including the RealMe's default error messages.
+This Gem has been developed for the intention of using [Devise](https://github.com/plataformatec/devise) as the account model with Realme SSO integration.
+This gem covers all of the SAML client requirements for RealMe integrations including the RealMe's default error messages.
 
-You will need to set up your frontend login pages to match [RealMe's branding guide lines](https://developers.realme.govt.nz/how-to-integrate/application-design-and-branding-guide/realme-page-elements/)
-We suggest you use their assets in a zip file their page.
+You will need to set up your frontend login pages to match [RealMe's branding guidelines](https://developers.realme.govt.nz/how-to-integrate/application-design-and-branding-guide/realme-page-elements/)
+We suggest you use their assets in a zip file on their page.
 
 Getting to Production:
 You will need to complete the [RealMe Operational handover checklist](https://developers.realme.govt.nz/how-to-integrate/getting-to-production/operational-handover-checklist/) `login service` form to gain access to RealMe production environments.
 
-Not Using *ruby* but need to itergrate? Use this gem is a baseline and find a suitable Library on [onelogin's](https://github.com/onelogin) github account.
+Not using *Ruby* but need to integrate? Use this gem as a baseline and find a suitable Library on [onelogin's](https://github.com/onelogin) github account.
 
 ## Installation
 
@@ -26,9 +26,9 @@ And then execute:
     $ bundle
 
 ### Realme
-To test that you have installed the Gem correctly intergrate with their message testing servies [RealMe MTS](https://mts.realme.govt.nz/logon-mts/home) first, followed by ITE then Production intergrations.
+To test that you have installed the Gem correctly integrate with their message testing servies [RealMe MTS](https://mts.realme.govt.nz/logon-mts/home) first, followed by ITE then Production integrations.
 
-You will need to be setup your applications intergration via their [developers website](https://developers.realme.govt.nz) for ITE and production set up.
+You will need to set up your applications integration via their [developers website](https://developers.realme.govt.nz) for ITE and production.
 
 ### Devise
 Setup
@@ -40,7 +40,7 @@ end
 ```
 
 Here we configure the [ruby-saml](https://github.com/onelogin/ruby-saml) gem.
-Realme provides the nessassery `service-metadata.xml` files for their side of the intergation they can be found on this [page](https://developers.realme.govt.nz/how-realme-works/technical-integration-steps#e75)
+Realme provides the necessary `service-metadata.xml` files for their side of the integration. They can be found on this [page](https://developers.realme.govt.nz/how-realme-works/technical-integration-steps#e75)
 
 ```ruby
 # config/initializers/realme_omniauth.rb
@@ -50,16 +50,16 @@ OmniAuth::Strategies::Realme.configure do |config|
 
   # Callback url
   config.assertion_consumer_service_url = 'http://myapp.com/users/auth/realme/callback'
-  
+
   # Sign the request saml and decrypt response
   config.private_key = 'Realme SLL private cert'
 
   # Realme login service xml file.
   # You will need to download the different XML files for the different environments found here: https://developers.realme.govt.nz/how-realme-works/technical-integration-steps/
   config.idp_service_metadata = Rails.root.join('path', 'to', 'logon-service-metadata.xml')
-  
-  # default Strenght
-  config.auth_strenght = 'urn:nzl:govt:ict:stds:authn:deployment:GLS:SAML:2.0:ac:classes:LowStrength'   
+
+  # default strength
+  config.auth_strength = 'urn:nzl:govt:ict:stds:authn:deployment:GLS:SAML:2.0:ac:classes:LowStrength'   
 end
 ```
 
@@ -171,7 +171,7 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/omniauth-realme.
+Bug reports and pull requests are welcome on GitHub at https://github.com/DigitalNZ/omniauth-realme.
 
 ## License
   GNU GENERAL PUBLIC LICENSE
