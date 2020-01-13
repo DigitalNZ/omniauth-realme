@@ -24,7 +24,7 @@ module OmniAuth
           session[:uid] = response.nameid
         else
           session[:realme_error] = {
-            error: response.errors.join()[/=> (\S+) ->/,1],
+            error: response.errors.join[/=> (\S+) ->/, 1],
             message: default_error_messages(response.errors.join)
           }
         end
@@ -39,17 +39,17 @@ module OmniAuth
         idp_metadata_parser = OneLogin::RubySaml::IdpMetadataParser.new
         settings = idp_metadata_parser.parse(File.read(options.fetch('idp_service_metadata')))
 
-          settings.issuer                         = options.fetch('issuer')
-          settings.assertion_consumer_service_url = options.fetch('assertion_consumer_service_url')
-          settings.private_key                    = options.fetch('private_key')
-          settings.authn_context                  = options.fetch('auth_strength', 'urn:nzl:govt:ict:stds:authn:deployment:GLS:SAML:2.0:ac:classes:LowStrength')
-          settings.protocol_binding                   = "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"
-          settings.assertion_consumer_service_binding = "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"
-          settings.soft = true
+        settings.issuer                         = options.fetch('issuer')
+        settings.assertion_consumer_service_url = options.fetch('assertion_consumer_service_url')
+        settings.private_key                    = options.fetch('private_key')
+        settings.authn_context                  = options.fetch('auth_strength', 'urn:nzl:govt:ict:stds:authn:deployment:GLS:SAML:2.0:ac:classes:LowStrength')
+        settings.protocol_binding                   = 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST'
+        settings.assertion_consumer_service_binding = 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST'
+        settings.soft = true
 
-          settings.security[:authn_requests_signed] = true
+        settings.security[:authn_requests_signed] = true
 
-          settings
+        settings
       end
 
       def default_error_messages(error)
@@ -61,11 +61,11 @@ module OmniAuth
            <p>You may try again later. If the problem persists, please contact RealMe Help <a href='tel:'0800664774>0800 664 774</a>.</p>"
         when /AuthnFailed/
           '<p>You have chosen to leave the RealMe login screen without completing the login process.</p>'
-          when /InternalError/
-            "<p>RealMe was unable to process your request due to a RealMe internal error.</p>
+        when /InternalError/
+          "<p>RealMe was unable to process your request due to a RealMe internal error.</p>
               <p>Please try again. If the problem persists, please contact RealMe Help Desk on <a href='tel:'0800664774>0800 664 774</a>.</p>"
-          else
-            "<p>RealMe reported a serious application error with the message:</p>
+        else
+          "<p>RealMe reported a serious application error with the message:</p>
               <p>#{error}</p>
               <p>Please try again later. If the problem persists, please contact RealMe Help Desk on <a href='tel:'0800664774>0800 664 774</a>.</p>"
         end
