@@ -16,7 +16,7 @@ GEM
     macaddr (1.7.2)
       systemu (~> 2.6.5)
     mini_portile2 (2.4.0)
-    nokogiri (1.10.7)
+    nokogiri (1.10.8)
       mini_portile2 (~> 2.4.0)
     omniauth (1.9.0)
       hashie (>= 3.4.6, < 3.7.0)
