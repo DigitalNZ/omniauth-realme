@@ -39,10 +39,11 @@ module OmniAuth
         idp_metadata_parser = OneLogin::RubySaml::IdpMetadataParser.new
         settings = idp_metadata_parser.parse(File.read(options.fetch('idp_service_metadata')))
 
-        settings.issuer                         = options.fetch('issuer')
-        settings.assertion_consumer_service_url = options.fetch('assertion_consumer_service_url')
-        settings.private_key                    = options.fetch('private_key')
-        settings.authn_context                  = options.fetch('auth_strength', 'urn:nzl:govt:ict:stds:authn:deployment:GLS:SAML:2.0:ac:classes:LowStrength')
+        settings.issuer                             = options.fetch('issuer')
+        settings.assertion_consumer_service_url     = options.fetch('assertion_consumer_service_url')
+        settings.attributes_index                   = options.fetch('attributes_index', '0')
+        settings.private_key                        = options.fetch('private_key')
+        settings.authn_context                      = options.fetch('auth_strength', 'urn:nzl:govt:ict:stds:authn:deployment:GLS:SAML:2.0:ac:classes:LowStrength')
         settings.protocol_binding                   = 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST'
         settings.assertion_consumer_service_binding = 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST'
         settings.soft = true
