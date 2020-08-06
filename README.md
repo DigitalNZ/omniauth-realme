@@ -85,7 +85,7 @@ end
 The customer `uid` will come through in their session as `session[:uid]`
 
 ```ruby
-require 'devise'
+# app/controllers/users/omniauth_callbacks_controller.rb
 
 module Users
   class OmniauthCallbacksController < ::Devise::OmniauthCallbacksController
