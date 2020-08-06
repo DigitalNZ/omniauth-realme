@@ -34,8 +34,9 @@ You will need to set up your applications integration via their [developers webs
 Setup
 ```ruby
 # config/initializers/devise.rb
-Devise.setup do |d_config|
-  d_config.omniauth :realme
+Devise.setup do |config|
+  # ...
+  config.omniauth :realme
 end
 ```
 
@@ -59,8 +60,17 @@ OmniAuth::Strategies::Realme.configure do |config|
   config.idp_service_metadata = Rails.root.join('path', 'to', 'logon-service-metadata.xml')
 
   # default strength
-  config.auth_strength = 'urn:nzl:govt:ict:stds:authn:deployment:GLS:SAML:2.0:ac:classes:LowStrength'   
+  config.auth_strength = 'urn:nzl:govt:ict:stds:authn:deployment:GLS:SAML:2.0:ac:classes:LowStrength'
 end
+```
+
+Routes
+
+```ruby
+# config/routes.rb
+
+# Add/edit the `devise_for` line in your routes file as shown here
+devise_for :users, controllers: { omniauth_callbacks: 'users/omniauth_callbacks' }
 ```
 
 Controllers
@@ -84,7 +94,7 @@ end
 The customer `uid` will come through in their session as `session[:uid]`
 
 ```ruby
-require 'devise'
+# app/controllers/users/omniauth_callbacks_controller.rb
 
 module Users
   class OmniauthCallbacksController < ::Devise::OmniauthCallbacksController
