@@ -60,7 +60,7 @@ OmniAuth::Strategies::Realme.configure do |config|
   config.idp_service_metadata = Rails.root.join('path', 'to', 'logon-service-metadata.xml')
 
   # default strength
-  config.auth_strength = 'urn:nzl:govt:ict:stds:authn:deployment:GLS:SAML:2.0:ac:classes:LowStrength'   
+  config.auth_strength = 'urn:nzl:govt:ict:stds:authn:deployment:GLS:SAML:2.0:ac:classes:LowStrength'
 end
 ```
 
