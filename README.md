@@ -64,6 +64,15 @@ OmniAuth::Strategies::Realme.configure do |config|
 end
 ```
 
+Routes
+
+```ruby
+# config/routes.rb
+
+# Add/edit the `devise_for` line in your routes file as shown here
+devise_for :users, controllers: { omniauth_callbacks: 'users/omniauth_callbacks' }
+```
+
 Controllers
 ```ruby
 # app/controllers/application_controller.rb
