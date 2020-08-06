@@ -34,8 +34,9 @@ You will need to set up your applications integration via their [developers webs
 Setup
 ```ruby
 # config/initializers/devise.rb
-Devise.setup do |d_config|
-  d_config.omniauth :realme
+Devise.setup do |config|
+  # ...
+  config.omniauth :realme
 end
 ```
 
