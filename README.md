@@ -173,6 +173,40 @@ Remove SAMLResponse from Rails log
 Rails.application.config.filter_parameters += [:password, 'SAMLResponse']
 ```
 
+## Metadata
+
+This gem includes `OmniAuth::Realme.generate_metadata_xml` which will generate SAML SP metadata in a form suitable for uploading to the [Realme MTS Metadata upload](https://mts.realme.govt.nz/logon-mts/metadataupdate) endpoint using the same settings you used to configure this strategy.
+
+Below is an example of using it to create a `/saml/metadata.xml` endpoint in your app. This can be convenient but might be unnecessary for your application, depending on your use case so this step is optional.
+
+```ruby
+# config/routes.rb
+
+# Example: curl http://localhost:3000/saml/metadata.xml
+get "saml/metadata", to: "saml_metadata#metadata"
+```
+
+```ruby
+# app/controllers/saml_metadata_controller.rb
+class SamlMetadataController < ApplicationController
+  # Skip authentication on the metadata action (this line is only required if
+  # you are using devise)
+  skip_before_action :authenticate_user!, only: [:metadata]
+
+  def metadata
+    respond_to do |format|
+      format.xml  { render xml: OmniAuth::Realme.generate_metadata_xml }
+    end
+  end
+end
+```
+
+If you don't need an endpoint in your app you can just invoke the function from the console e.g.
+
+```ruby
+rails-console> puts OmniAuth::Realme.generate_metadata_xml
+```
+
 ## Development
 
 After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.

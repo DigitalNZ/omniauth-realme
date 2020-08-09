@@ -4,7 +4,7 @@ require_relative 'lib/omniauth/realme/version'
 
 Gem::Specification.new do |spec|
   spec.name          = 'omniauth-realme'
-  spec.version       = Omniauth::Realme::VERSION
+  spec.version       = OmniAuth::Realme::VERSION
   spec.authors       = ['DigitalNZ']
   spec.email         = ['info@digitalnz.org']
 

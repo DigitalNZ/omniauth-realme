@@ -33,8 +33,6 @@ module OmniAuth
         super
       end
 
-      private
-
       def saml_settings
         idp_metadata_parser = OneLogin::RubySaml::IdpMetadataParser.new
         settings = idp_metadata_parser.parse(File.read(options.fetch('idp_service_metadata')))
@@ -52,6 +50,8 @@ module OmniAuth
 
         settings
       end
+
+      private
 
       def default_error_messages(error)
         case error
