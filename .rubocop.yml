@@ -8,3 +8,9 @@ Style/HashTransformKeys:
 
 Style/HashTransformValues:
   Enabled: false
+
+Metrics/BlockLength:
+  Exclude:
+    - "spec/**/*" # specs can have long blocks
+    - "*.gemspec"
+
