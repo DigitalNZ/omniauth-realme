@@ -9,6 +9,15 @@ on:
 jobs:
   ci_checks:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ruby:
+          - 2.4.9
+          - 2.5.8
+          - 2.6.6
+          - 2.7.1
+
+    name: Ruby ${{ matrix.ruby }} sample
 
     steps:
       - name: Checkout this repo
@@ -18,9 +27,9 @@ jobs:
         uses: ruby/setup-ruby@v1
         with:
           bundler-cache: true
-          ruby-version: '2.7'
+          ruby-version: ${{ matrix.ruby }}
 
-      - name: Run Ruby linting
+      - name: Run rubocop
         run: |
           bundle exec rubocop
 
