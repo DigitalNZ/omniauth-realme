@@ -1,0 +1,180 @@
+# frozen_string_literal: true
+
+RSpec.describe OmniAuth::Strategies::Realme do
+  let(:idp_metadata_path) { File.join(__dir__, '../../fixtures/realme_mts_idp_metadata.xml') }
+  let(:expected_clock_drift) { 7 }
+  let(:assertion_consumer_service_url) { 'http://www.example.com/auth/anything' }
+  let(:issuer) { 'Anything' }
+  let(:realme_strategy_options) do
+    p12 = OpenSSL::PKCS12.new(File.read(File.join(__dir__, '../../fixtures/mts_saml_sp.p12')), 'password')
+
+    {
+      idp_service_metadata: idp_metadata_path,
+      issuer: issuer,
+      private_key: p12.key.to_s,
+      certificate: p12.certificate.to_s,
+      assertion_consumer_service_url: assertion_consumer_service_url,
+      allowed_clock_drift: expected_clock_drift
+    }
+  end
+
+  # Rack::Test helper methods expect the Rack app they are testing to be in `app`
+  let(:app) do
+    # OmniAuth strategies are rack apps and they depend on their being a
+    # Session middleware before them in the chain so we build a chain of rack
+    # middlewares to enable testing:
+    #
+    #   session_middleware -> strategy_middleware -> dummy_welcome_app
+    #
+    options = realme_strategy_options
+    Rack::Builder.new do |b|
+      b.use Rack::Session::Cookie, secret: 'abc123'
+      b.use OmniAuth::Strategies::Realme, options
+      b.run ->(env) { [200, env, ['Welcome']] }
+    end.to_app
+  end
+
+  around(:each) do |example|
+    # Create a custom logger which ignores all but the most serious log
+    # messages (we don't want to pollute our test output with log output)
+    logger = Logger.new(STDOUT)
+    logger.level = Logger::FATAL
+
+    # Replace the default OmniAuth and RubySaml loggers with our custom logger.
+    old_omniauth_logger = OmniAuth.config.logger
+    OmniAuth.config.logger = logger
+
+    old_ruby_saml_logger = OneLogin::RubySaml::Logging.logger
+    OneLogin::RubySaml::Logging.logger = logger
+
+    example.run
+
+    # Reset the loggers after each test run
+    OmniAuth.config.logger = old_omniauth_logger
+    OneLogin::RubySaml::Logging.logger = old_ruby_saml_logger
+  end
+
+  describe '#request_phase' do
+    let(:expected_saml_request) do
+      <<~EO_XML
+        <samlp:AuthnRequest
+          AssertionConsumerServiceURL='#{assertion_consumer_service_url}'
+          AttributeConsumingServiceIndex='0'
+          Destination='https://mts.realme.govt.nz/logon-mts/mtsEntryPoint'
+          ID='PLACEHOLDER_ID'
+          IssueInstant='PLACEHOLDER_ISSUE_INSTANT'
+          ProtocolBinding='urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST' Version='2.0'
+          xmlns:saml='urn:oasis:names:tc:SAML:2.0:assertion'
+          xmlns:samlp='urn:oasis:names:tc:SAML:2.0:protocol'>
+          <saml:Issuer>#{issuer}</saml:Issuer>
+          <samlp:NameIDPolicy AllowCreate='true' Format='urn:oasis:names:tc:SAML:2.0:nameid-format:persistent'/>
+          <samlp:RequestedAuthnContext Comparison='exact'>
+            <saml:AuthnContextClassRef>urn:nzl:govt:ict:stds:authn:deployment:GLS:SAML:2.0:ac:classes:LowStrength</saml:AuthnContextClassRef>
+          </samlp:RequestedAuthnContext>
+        </samlp:AuthnRequest>
+      EO_XML
+    end
+
+    it 'generates the expected HTTP 302 Redirect to Realme' do
+      response = get('/auth/realme')
+
+      expect(response.status).to eq(302)
+      expect(response.headers['Location']).to match(Regexp.quote('https://mts.realme.govt.nz/logon-mts/mtsEntryPoint?SAMLRequest='))
+    end
+
+    it 'uses the expected signature algorithm to sign the SAMLRequest' do
+      response = get('/auth/realme')
+
+      # Extract the query params from the redirect URL generated
+      query_params = CGI.parse(URI.parse(response.headers['Location']).query)
+
+      expect(query_params.fetch('SigAlg').first).to eq('http://www.w3.org/2000/09/xmldsig#rsa-sha1')
+    end
+
+    it 'generates the expected SAMLRequest for Realme' do
+      response = get('/auth/realme')
+
+      # Extract the query params from the redirect URL generated
+      query_params = CGI.parse(URI.parse(response.headers['Location']).query)
+
+      # Retrieve and decode the SAML request and convert it to an Nokogiri XML doc
+      raw_saml_request = query_params.fetch('SAMLRequest').first
+      actual_saml_request = Zlib::Inflate.new(-Zlib::MAX_WBITS).inflate(Base64.decode64(raw_saml_request))
+      actual_saml_request_xml = Nokogiri::XML(actual_saml_request, &:noblanks)
+
+      # Replace the parts of the SAML Request which we know are different each
+      # time with values that we can test
+      actual_saml_request_xml.root.attributes['ID'].value = 'PLACEHOLDER_ID'
+      actual_saml_request_xml.root.attributes['IssueInstant'].value = 'PLACEHOLDER_ISSUE_INSTANT'
+
+      # Create a Nokogiri XML doc from the expected request
+      expected_saml_request_xml = Nokogiri::XML(expected_saml_request, &:noblanks)
+
+      # Serialize both the actual and expected requests docs to strings and
+      # compare. We depend on Nokogiri serializing the same document the same
+      # way each time (e.g. order of attributes is the same).
+      expect(actual_saml_request_xml.to_s).to eq(expected_saml_request_xml.to_s)
+    end
+  end
+
+  describe '#callback_phase' do
+    let(:raw_saml_response) { 'value can be anything because we stub & mock the return value' }
+    let(:fake_ruby_saml_response) { double(is_valid?: true, nameid: expected_realme_flt) }
+    let(:expected_realme_flt) { 'expectedrealmefltvalue' }
+
+    it 'passes the received clock drift to ruby-saml' do
+      expect(OneLogin::RubySaml::Response).to receive(:new).with(raw_saml_response,
+                                                                 hash_including(allowed_clock_drift: expected_clock_drift))
+                                                           .and_return(fake_ruby_saml_response)
+
+      get('/auth/realme/callback', SAMLResponse: raw_saml_response)
+    end
+
+    context 'when Realme can successfully authenticate the user' do
+      let(:expected_omniauth_auth) do
+        {
+          'provider' => 'realme',
+          'uid' => expected_realme_flt,
+          'info' => {},
+          'credentials' => {},
+          'extra' => {}
+        }
+      end
+
+      it 'puts the Realme FLT in session[:uid]' do
+        allow(OneLogin::RubySaml::Response).to receive(:new).with(raw_saml_response,
+                                                                  hash_including(allowed_clock_drift: expected_clock_drift))
+                                                            .and_return(fake_ruby_saml_response)
+
+        response = get('/auth/realme/callback', SAMLResponse: raw_saml_response)
+
+        expect(response['rack.session']['uid']).to eq(expected_realme_flt)
+      end
+
+      it 'puts the Realme FLT in "omniauth.auth"' do
+        allow(OneLogin::RubySaml::Response).to receive(:new).with(raw_saml_response,
+                                                                  hash_including(allowed_clock_drift: expected_clock_drift))
+                                                            .and_return(fake_ruby_saml_response)
+
+        response = get('/auth/realme/callback', SAMLResponse: raw_saml_response)
+
+        expect(response['omniauth.auth']).to eq(expected_omniauth_auth)
+      end
+    end
+
+    context 'when Realme returns an error' do
+      let(:error_ruby_saml_response) { double(is_valid?: false, errors: %w[first_err second_err]) }
+
+      it 'puts the errors Realme FLT in session[:realme_error]' do
+        allow(OneLogin::RubySaml::Response).to receive(:new).with(raw_saml_response,
+                                                                  hash_including(allowed_clock_drift: expected_clock_drift))
+                                                            .and_return(error_ruby_saml_response)
+
+        response = get('/auth/realme/callback', SAMLResponse: raw_saml_response)
+
+        expect(response['rack.session']['realme_error'][:error]).to eq(nil)
+        expect(response['rack.session']['realme_error'][:message]).to match(/RealMe reported a serious application error with the message/)
+      end
+    end
+  end
+end
