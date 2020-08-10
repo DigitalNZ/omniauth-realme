@@ -1,4 +1,7 @@
 # omniauth-realme
+
+![CI](https://github.com/DigitalNZ/omniauth-realme/workflows/CI/badge.svg)
+
 Omniauth strategy for New Zealand's secure online identity verification service.
 
 This Gem has been developed for the intention of using [Devise](https://github.com/plataformatec/devise) as the account model with Realme SSO integration.
