@@ -44,10 +44,6 @@ module OmniAuth
         @uid
       end
 
-      def allowed_clock_drift
-        options.fetch('allowed_clock_drift', 0)
-      end
-
       def saml_settings # rubocop:disable Metrics/AbcSize
         idp_metadata_parser = OneLogin::RubySaml::IdpMetadataParser.new
         settings = idp_metadata_parser.parse(File.read(options.fetch('idp_service_metadata')))
@@ -87,6 +83,10 @@ module OmniAuth
       end
 
       private
+
+      def allowed_clock_drift
+        options.fetch('allowed_clock_drift', 0)
+      end
 
       def default_error_messages(error)
         case error
