@@ -9,14 +9,22 @@ RSpec.describe OmniAuth::Realme do
     let(:idp_metadata_path) { File.join(__dir__, '../fixtures/realme_mts_idp_metadata.xml') }
     let(:assertion_consumer_service_url) { 'http://www.example.com/auth/anything' }
     let(:issuer) { 'Anything' }
-    let(:realme_strategy_options) do
-      p12 = OpenSSL::PKCS12.new(File.read(File.join(__dir__, '../fixtures/mts_saml_sp.p12')), 'password')
 
+    let(:p12) { OpenSSL::PKCS12.new(File.read(File.join(__dir__, '../fixtures/mts_saml_sp.p12')), 'password') }
+    let(:sp_private_key) { p12.key.to_s }
+    let(:sp_public_key) { p12.certificate.to_s }
+    let(:sp_public_key_without_formatting) do
+      sp_public_key
+        .gsub!(/-----(BEGIN|END) CERTIFICATE-----/, '')
+        .gsub!("\n", '')
+    end
+
+    let(:realme_strategy_options) do
       {
         idp_service_metadata: idp_metadata_path,
         issuer: issuer,
-        private_key: p12.key.to_s,
-        certificate: p12.certificate.to_s,
+        private_key: sp_private_key,
+        certificate: sp_public_key,
         assertion_consumer_service_url: assertion_consumer_service_url,
         allowed_clock_drift: 0
       }
@@ -26,7 +34,21 @@ RSpec.describe OmniAuth::Realme do
       <<~EO_XML
         <?xml version="1.0" encoding="UTF-8"?>
         <md:EntityDescriptor xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" ID="PLACEHOLDER_ID" entityID="#{issuer}">
-          <md:SPSSODescriptor AuthnRequestsSigned="true" WantAssertionsSigned="false" protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">
+          <md:SPSSODescriptor AuthnRequestsSigned="true" WantAssertionsSigned="true" protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">
+            <md:KeyDescriptor use="signing">
+              <ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
+                <ds:X509Data>
+                  <ds:X509Certificate>#{sp_public_key_without_formatting}</ds:X509Certificate>
+                </ds:X509Data>
+              </ds:KeyInfo>
+            </md:KeyDescriptor>
+            <md:KeyDescriptor use="encryption">
+              <ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
+                <ds:X509Data>
+                  <ds:X509Certificate>#{sp_public_key_without_formatting}</ds:X509Certificate>
+                </ds:X509Data>
+              </ds:KeyInfo>
+            </md:KeyDescriptor>
             <md:NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:persistent</md:NameIDFormat>
             <md:AssertionConsumerService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="#{assertion_consumer_service_url}" index="0" isDefault="true"/>
           </md:SPSSODescriptor>
