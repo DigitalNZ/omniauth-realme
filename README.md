@@ -1,4 +1,7 @@
 # omniauth-realme
+
+![CI](https://github.com/DigitalNZ/omniauth-realme/workflows/CI/badge.svg)
+
 Omniauth strategy for New Zealand's secure online identity verification service.
 
 This Gem has been developed for the intention of using [Devise](https://github.com/plataformatec/devise) as the account model with Realme SSO integration.
@@ -53,7 +56,18 @@ OmniAuth::Strategies::Realme.configure do |config|
   config.assertion_consumer_service_url = 'http://myapp.com/users/auth/realme/callback'
 
   # Sign the request saml and decrypt response
-  config.private_key = 'Realme SLL private cert'
+
+  # Read the public+private keypair from a file. This example demonstrates
+  # using the .p12 file Realme provides to help you get up an running with their
+  # MTS environment.
+  p12 = OpenSSL::PKCS12.new(File.read(Rails.root.join("realme/Integration-Bundle-MTS-V3.2/mts_saml_sp.p12")), "password")
+
+  # Give the strategy the public key that will identify your SP to Realme (the IdP)
+  config.certificate = p12.certificate.to_s
+
+  # Give the strategy the corresponding private key so it can decrypt messages
+  # sent by Realme which are encrypted with the public key
+  config.private_key = p12.key.to_s
 
   # Realme login service xml file.
   # You will need to download the different XML files for the different environments found here: https://developers.realme.govt.nz/how-realme-works/technical-integration-steps/
@@ -61,6 +75,17 @@ OmniAuth::Strategies::Realme.configure do |config|
 
   # default strength
   config.auth_strength = 'urn:nzl:govt:ict:stds:authn:deployment:GLS:SAML:2.0:ac:classes:LowStrength'
+
+  # The allowed clock drift is added to the current time at which the response
+  # is validated before it's tested against the NotBefore assertion. Its value
+  # must be given in a number (and/or fraction) of seconds.
+  #
+  # Make sure to keep the value as comfortably small as possible to keep
+  # security risks to a minimum.
+  #
+  # See: https://github.com/onelogin/ruby-saml#clock-drift
+  #
+  config.allowed_clock_drift = 5.seconds # default is 0.seconds
 end
 ```
 

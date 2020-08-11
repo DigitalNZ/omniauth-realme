@@ -7,7 +7,6 @@ module OmniAuth
   module Strategies
     class Realme
       include OmniAuth::Strategy
-      autoload :AuthRequest, 'omniauth/strategies/realme/auth_request'
 
       # Fixed OmniAuth options
       option :provider, 'realme'
@@ -18,9 +17,12 @@ module OmniAuth
       end
 
       def callback_phase
-        response = ::OneLogin::RubySaml::Response.new(request.params['SAMLResponse'], settings: saml_settings)
+        response = ::OneLogin::RubySaml::Response.new(request.params['SAMLResponse'],
+                                                      settings: saml_settings,
+                                                      allowed_clock_drift: allowed_clock_drift)
 
         if response.is_valid?
+          @uid = response.nameid
           session[:uid] = response.nameid
         else
           session[:realme_error] = {
@@ -29,11 +31,24 @@ module OmniAuth
           }
         end
 
-        @raw_info = response
         super
       end
 
-      def saml_settings
+      ##
+      # Return the `uid` (User ID) value in a way that allows
+      # OmniAuth::Strategy to place it in the `request["omniauth.auth"]` Hash
+      # that it builds. See
+      # https://github.com/omniauth/omniauth/wiki/Auth-Hash-Schema
+      #
+      uid do
+        @uid
+      end
+
+      def allowed_clock_drift
+        options.fetch('allowed_clock_drift', 0)
+      end
+
+      def saml_settings # rubocop:disable Metrics/AbcSize
         idp_metadata_parser = OneLogin::RubySaml::IdpMetadataParser.new
         settings = idp_metadata_parser.parse(File.read(options.fetch('idp_service_metadata')))
 
@@ -47,6 +62,26 @@ module OmniAuth
         settings.soft = true
 
         settings.security[:authn_requests_signed] = true
+
+        ##
+        # Realme error if this is missing from the metadata
+        #
+        #     WantAssertionsSigned must be true (MTS-002)
+        #
+        settings.security[:want_assertions_signed] = true
+
+        ##
+        # Realme MTS requires our Metadata XML to have both:
+        #
+        #     <md:KeyDescriptor use="signing">...</md:KeyDescriptor>
+        #     <md:KeyDescriptor use="encryption">...</md:KeyDescriptor>
+        #
+        # in the metadata XML we submit. We need to set a certificate **and**
+        # set `:want_assertions_encrypted` for ruby-saml to include these
+        # elements.
+        #
+        settings.certificate = options.fetch('certificate')
+        settings.security[:want_assertions_encrypted] = true
 
         settings
       end
