@@ -8,6 +8,8 @@ module OmniAuth
     class Realme
       include OmniAuth::Strategy
 
+      RCMS_LAT_NAME = 'urn:nzl:govt:ict:stds:authn:safeb64:logon_attributes_jwt'
+
       # Fixed OmniAuth options
       option :provider, 'realme'
 
@@ -16,7 +18,7 @@ module OmniAuth
         redirect req.create(saml_settings, 'SigAlg' => 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256')
       end
 
-      def callback_phase
+      def callback_phase # rubocop:disable Metrics/AbcSize
         response = ::OneLogin::RubySaml::Response.new(request.params['SAMLResponse'],
                                                       settings: saml_settings,
                                                       allowed_clock_drift: allowed_clock_drift)
@@ -24,6 +26,16 @@ module OmniAuth
         if response.is_valid?
           @uid = response.nameid
           session[:uid] = response.nameid
+
+          ##
+          # If the Realme Context Mapping Service (RCMS) is enabled in Realme
+          # for our app then we will get a RCMS Login Access Token in the
+          # SAMLResponse.
+          #
+          # We save the token if it exists. See
+          # https://developers.realme.govt.nz/how-realme-works/whats-realme-rcms/
+          #
+          @realme_cms_lat = response.attributes[RCMS_LAT_NAME] if response.attributes[RCMS_LAT_NAME]
         else
           session[:realme_error] = {
             error: response.errors.join[/=> (\S+) ->/, 1],
@@ -32,6 +44,21 @@ module OmniAuth
         end
 
         super
+      end
+
+      ##
+      # The `credentials` Hash will be placed within the `request["omniauth.auth"]`
+      # Hash that `OmniAuth::Strategy` builds. See
+      # https://github.com/omniauth/omniauth/wiki/Auth-Hash-Schema
+      #
+      # `credentials` contains any extra credentials information about the user
+      # that we received from the authentication service (Realme) e.g. an RCMS
+      # token if it exists.
+      #
+      credentials do
+        output = {}
+        output[:realme_cms_lat] = @realme_cms_lat if @realme_cms_lat
+        output
       end
 
       ##
