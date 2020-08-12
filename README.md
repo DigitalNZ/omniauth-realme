@@ -165,6 +165,9 @@ module Users
     skip_before_action :verify_authenticity_token
 
     def realme
+      # If you sent any relay state to Realme then you can retrieve it
+      relay_state = request.env["omniauth.auth"]["extra"]["relay_state"]
+
       @user = User.from_omniauth('realme', session.delete(:uid))
 
       unless @user.valid?
