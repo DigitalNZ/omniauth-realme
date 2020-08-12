@@ -55,7 +55,7 @@ module OmniAuth
         settings.authn_context                      = options.fetch('auth_strength', 'urn:nzl:govt:ict:stds:authn:deployment:GLS:SAML:2.0:ac:classes:LowStrength')
         settings.protocol_binding                   = 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST'
         settings.assertion_consumer_service_binding = 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST'
-        settings.soft = true
+        settings.soft                               = !options.fetch('raise_exceptions_for_saml_validation_errors', false)
 
         settings.security[:authn_requests_signed] = true
 
