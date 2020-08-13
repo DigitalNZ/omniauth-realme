@@ -91,7 +91,7 @@ OmniAuth::Strategies::Realme.configure do |config|
   # validation errors. We recommend enabling this in Rails development env at
   # least.
   #
-  raise_exceptions_for_saml_validation_errors = true if Rails.env.development? # default: false
+  config.raise_exceptions_for_saml_validation_errors = Rails.env.development? # default: false
 end
 ```
 
