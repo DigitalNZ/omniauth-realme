@@ -86,6 +86,12 @@ OmniAuth::Strategies::Realme.configure do |config|
   # See: https://github.com/onelogin/ruby-saml#clock-drift
   #
   config.allowed_clock_drift = 5.seconds # default is 0.seconds
+
+  # It can be very useful to fail noisily in development if there are SAML
+  # validation errors. We recommend enabling this in Rails development env at
+  # least.
+  #
+  config.raise_exceptions_for_saml_validation_errors = Rails.env.development? # default: false
 end
 ```
 
