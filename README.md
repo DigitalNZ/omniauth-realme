@@ -238,6 +238,33 @@ If you don't need an endpoint in your app you can just invoke the function from 
 rails-console> puts OmniAuth::Realme.generate_metadata_xml
 ```
 
+## Realme Context Mapping Service (RCMS)
+
+[Realme Context Mapping Service](https://developers.realme.govt.nz/how-realme-works/whats-realme-rcms/) is an additional service which your app can optionally integrate with.
+
+Most of the work of integrating with RCMS is outside of the scope of what OmniAuth does. If your app is using RCMS then you will receive a _Login Attributes Token_ as well as the normal Realme FLT with the SAMLResponse.
+
+This strategy facilitates your use of RCMS by making that additional token (if
+it exists) available in
+`request.env['omniauth.auth']['credentials']['realme_cms_lat']` e.g.
+
+```ruby
+# app/controllers/users/omniauth_callbacks_controller.rb
+
+module Users
+  class OmniauthCallbacksController < ::Devise::OmniauthCallbacksController
+    skip_before_action :verify_authenticity_token
+
+    def realme
+      realme_flt = request.env['omniauth.auth']['uid']
+      realme_cms_lat = request.env['omniauth.auth']['credentials']['realme_cms_lat']
+
+      # complete your RCMS integration here ...
+    end
+  end
+end
+```
+
 ## Development
 
 After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
