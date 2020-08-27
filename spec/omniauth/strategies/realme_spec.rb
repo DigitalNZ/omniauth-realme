@@ -5,6 +5,7 @@ RSpec.describe OmniAuth::Strategies::Realme do
   let(:expected_clock_drift) { 7 }
   let(:assertion_consumer_service_url) { 'http://www.example.com/auth/anything' }
   let(:issuer) { 'Anything' }
+  let(:legacy_rails_session_behaviour_enabled) { nil } # use whatever the default is
   let(:realme_strategy_options) do
     p12 = OpenSSL::PKCS12.new(File.read(File.join(__dir__, '../../fixtures/mts_saml_sp.p12')), 'password')
 
@@ -14,7 +15,8 @@ RSpec.describe OmniAuth::Strategies::Realme do
       private_key: p12.key.to_s,
       certificate: p12.certificate.to_s,
       assertion_consumer_service_url: assertion_consumer_service_url,
-      allowed_clock_drift: expected_clock_drift
+      allowed_clock_drift: expected_clock_drift,
+      legacy_rails_session_behaviour_enabled: legacy_rails_session_behaviour_enabled
     }
   end
 
@@ -135,18 +137,51 @@ RSpec.describe OmniAuth::Strategies::Realme do
       get('/auth/realme/callback', SAMLResponse: raw_saml_response)
     end
 
-    context 'when Realme can successfully authenticate the user' do
+    context 'when we receive a Realme Context Mapping Service (RCMS) Login Access Token' do
+      let(:expected_realme_cms_lat) { 'some-long-token' }
+      let(:fake_ruby_saml_response) do
+        double('OneLogin::RubySaml::Response',
+               is_valid?: true,
+               nameid: expected_realme_flt,
+               attributes: { OmniAuth::Strategies::Realme::RCMS_LAT_NAME => expected_realme_cms_lat })
+      end
       let(:expected_omniauth_auth) do
         {
           'provider' => 'realme',
           'uid' => expected_realme_flt,
           'info' => {},
-          'credentials' => {},
+          'credentials' => {
+            'realme_cms_lat' => expected_realme_cms_lat
+          },
           'extra' => {}
         }
       end
 
-      context 'when we receive a Realme FLT' do
+      it 'Realme RCMS LAT is put in "credentials" within "omniauth.auth"' do
+        allow(OneLogin::RubySaml::Response).to receive(:new).with(raw_saml_response,
+                                                                  hash_including(allowed_clock_drift: expected_clock_drift))
+                                                            .and_return(fake_ruby_saml_response)
+
+        response = get('/auth/realme/callback', SAMLResponse: raw_saml_response)
+
+        expect(response['omniauth.auth']).to eq(expected_omniauth_auth)
+      end
+    end
+
+    context 'when legacy use of Rails session is enabled' do
+      let(:legacy_rails_session_behaviour_enabled) { true }
+
+      context 'when Realme can successfully authenticate the user' do
+        let(:expected_omniauth_auth) do
+          {
+            'provider' => 'realme',
+            'uid' => expected_realme_flt,
+            'info' => {},
+            'credentials' => {},
+            'extra' => {}
+          }
+        end
+
         it 'puts the Realme FLT in session[:uid]' do
           allow(OneLogin::RubySaml::Response).to receive(:new).with(raw_saml_response,
                                                                     hash_including(allowed_clock_drift: expected_clock_drift))
@@ -156,62 +191,75 @@ RSpec.describe OmniAuth::Strategies::Realme do
 
           expect(response['rack.session']['uid']).to eq(expected_realme_flt)
         end
+      end
 
-        it 'puts the Realme FLT in "omniauth.auth"' do
+      context 'when Realme returns an error' do
+        let(:error_ruby_saml_response) do
+          double(is_valid?: false,
+                 status_code: 'anything',
+                 status_message: 'anything',
+                 errors: %w[first_err second_err],
+                 attributes: {})
+        end
+
+        it 'puts the errors Realme FLT in session[:realme_error]' do
           allow(OneLogin::RubySaml::Response).to receive(:new).with(raw_saml_response,
                                                                     hash_including(allowed_clock_drift: expected_clock_drift))
-                                                              .and_return(fake_ruby_saml_response)
+                                                              .and_return(error_ruby_saml_response)
 
           response = get('/auth/realme/callback', SAMLResponse: raw_saml_response)
 
-          expect(response['omniauth.auth']).to eq(expected_omniauth_auth)
+          expect(response['rack.session']['realme_error'][:error]).to eq(nil)
+          expect(response['rack.session']['realme_error'][:message]).to match(/RealMe reported a serious application error with the message/)
         end
       end
+    end
 
-      context 'when we receive a Realme Context Mapping Service (RCMS) Login Access Token' do
-        let(:expected_realme_cms_lat) { 'some-long-token' }
-        let(:fake_ruby_saml_response) do
-          double('OneLogin::RubySaml::Response',
-                 is_valid?: true,
-                 nameid: expected_realme_flt,
-                 attributes: { OmniAuth::Strategies::Realme::RCMS_LAT_NAME => expected_realme_cms_lat })
-        end
+    context 'when legacy use of Rails session is disabled' do
+      let(:legacy_rails_session_behaviour_enabled) { false }
+
+      context 'when Realme can successfully authenticate the user' do
         let(:expected_omniauth_auth) do
           {
             'provider' => 'realme',
             'uid' => expected_realme_flt,
             'info' => {},
-            'credentials' => {
-              'realme_cms_lat' => expected_realme_cms_lat
-            },
+            'credentials' => {},
             'extra' => {}
           }
         end
 
-        it 'puts the Realme RCMS LAT in "credentials" within "omniauth.auth"' do
+        context 'when we receive a Realme FLT' do
+          it 'puts the Realme FLT in "omniauth.auth"' do
+            allow(OneLogin::RubySaml::Response).to receive(:new).with(raw_saml_response,
+                                                                      hash_including(allowed_clock_drift: expected_clock_drift))
+                                                                .and_return(fake_ruby_saml_response)
+
+            response = get('/auth/realme/callback', SAMLResponse: raw_saml_response)
+
+            expect(response['omniauth.auth']).to eq(expected_omniauth_auth)
+          end
+        end
+      end
+
+      context 'when Realme returns a urn:oasis:names:tc:SAML:2.0:status:AuthnFailed error' do
+        let(:error_ruby_saml_response) do
+          double(is_valid?: false,
+                 status_code: 'urn:oasis:names:tc:SAML:2.0:status:AuthnFailed',
+                 status_message: 'anything',
+                 errors: %w[first_err second_err],
+                 attributes: {})
+        end
+
+        it 'redirects to the OmniAuth failure rack app' do
           allow(OneLogin::RubySaml::Response).to receive(:new).with(raw_saml_response,
                                                                     hash_including(allowed_clock_drift: expected_clock_drift))
-                                                              .and_return(fake_ruby_saml_response)
+                                                              .and_return(error_ruby_saml_response)
 
           response = get('/auth/realme/callback', SAMLResponse: raw_saml_response)
 
-          expect(response['omniauth.auth']).to eq(expected_omniauth_auth)
+          expect(response.headers['Location']).to eq('/auth/failure?message=OmniAuth_Strategies_Realme_RealmeAuthnFailedError&strategy=realme')
         end
-      end
-    end
-
-    context 'when Realme returns an error' do
-      let(:error_ruby_saml_response) { double(is_valid?: false, errors: %w[first_err second_err], attributes: {}) }
-
-      it 'puts the errors Realme FLT in session[:realme_error]' do
-        allow(OneLogin::RubySaml::Response).to receive(:new).with(raw_saml_response,
-                                                                  hash_including(allowed_clock_drift: expected_clock_drift))
-                                                            .and_return(error_ruby_saml_response)
-
-        response = get('/auth/realme/callback', SAMLResponse: raw_saml_response)
-
-        expect(response['rack.session']['realme_error'][:error]).to eq(nil)
-        expect(response['rack.session']['realme_error'][:message]).to match(/RealMe reported a serious application error with the message/)
       end
     end
   end

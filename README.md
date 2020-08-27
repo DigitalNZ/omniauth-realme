@@ -34,7 +34,9 @@ To test that you have installed the Gem correctly integrate with their message t
 You will need to set up your applications integration via their [developers website](https://developers.realme.govt.nz) for ITE and production.
 
 ### Devise
+
 Setup
+
 ```ruby
 # config/initializers/devise.rb
 Devise.setup do |config|
@@ -45,6 +47,24 @@ end
 
 Here we configure the [ruby-saml](https://github.com/onelogin/ruby-saml) gem.
 Realme provides the necessary `service-metadata.xml` files for their side of the integration. They can be found on this [page](https://developers.realme.govt.nz/how-realme-works/technical-integration-steps#e75)
+
+```ruby
+# config/initializers/omniauth.rb
+
+# Use OmniAuthCallbacksController#failure as the Rack app which OmniAuth will
+# redirect to in the event of a failure
+OmniAuth.config.on_failure = Proc.new { |env| OmniAuthCallbacksController.action(:failure).call(env) }
+
+OmniAuth.configure do |config|
+  # Always wedirect to the failure endpoint if there is an error. Normally the
+  # exception would just be raised in development mode. This is useful for
+  # testing your Realme error handling in development.
+  config.failure_raise_out_environments = []
+
+  # We want to see OmniAuth messages in the log
+  config.logger = Rails.logger
+end
+```
 
 ```ruby
 # config/initializers/realme_omniauth.rb
@@ -92,6 +112,19 @@ OmniAuth::Strategies::Realme.configure do |config|
   # least.
   #
   config.raise_exceptions_for_saml_validation_errors = Rails.env.development? # default: false
+
+  # Versions 0.1.0 and older of this gem return the FLT or any errors from
+  # Realme in the Rails session. We are migrating away from this to a more
+  # conventional OmniAuth approach of returning the FLT in
+  # `request.env['omniauth.auth'] and errors redirect to the OmniAuth failure
+  # Rack app.
+  #
+  # As of version 0.1.0, using the Rails session is enabled by default to not
+  # break existing installations. If you are configuring this strategy in a new
+  # application, you should set this behaviour to `false` to ensure your app
+  # continues to work seamlessly in future versions of this gem.
+  #
+  config.legacy_rails_session_behaviour_enabled = false
 end
 ```
 
@@ -122,7 +155,7 @@ class ApplicationController < ActionController::Base
 end
 ```
 
-The customer `uid` will come through in their session as `session[:uid]`
+The customer `uid` will come through in `request.env['omniauth.auth']['uid']`
 
 ```ruby
 # app/controllers/users/omniauth_callbacks_controller.rb
@@ -132,8 +165,6 @@ module Users
     skip_before_action :verify_authenticity_token
 
     def realme
-      return redirect_to new_user_session_path, alert: session.delete(:realme_error)[:message] if session[:realme_error].present? || session[:uid].blank?
-
       @user = User.from_omniauth('realme', session.delete(:uid))
 
       unless @user.valid?
@@ -146,6 +177,15 @@ module Users
       flash.notice = 'RealMe login successful.'
 
       sign_in_and_redirect @user
+    end
+
+    def failure
+      exception = request.env["omniauth.error"] # a reference to the exception instance class
+      error_type = request.env["omniauth.error.type"] # the first symbol passed to fail!()
+      erroring_strategy = request.env["omniauth.error.strategy"] # a reference to the strategy instance that threw the error
+
+      flash.alert = "Realme login failed because #{exception.message}"
+      redirect_to root_path
     end
   end
 end

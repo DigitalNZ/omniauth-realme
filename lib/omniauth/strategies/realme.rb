@@ -6,6 +6,27 @@ require 'ruby-saml'
 module OmniAuth
   module Strategies
     class Realme
+      ##
+      # Create an exception for each documented Realme error
+      # (https://developers.realme.govt.nz/how-realme-works/realme-saml-exception-handling/).
+      #
+      # All the errors we raise inherit from `OmniAuth::Strategies::Realme::Error`
+      # so a caller can rescue that if they want to rescue all exceptions from
+      # this class.
+      #
+      class Error                         < StandardError; end
+      class RealmeAuthnFailedError        < Error; end
+      class RealmeInternalError           < Error; end
+      class RealmeInternalError           < Error; end
+      class RealmeNoAvailableIDPError     < Error; end
+      class RealmeNoPassiveError          < Error; end
+      class RealmeRequestDeniedError      < Error; end
+      class RealmeRequestUnsupportedError < Error; end
+      class RealmeTimeoutError            < Error; end
+      class RealmeUnknownPrincipalError   < Error; end
+      class RealmeUnrecognisedError       < Error; end
+      class RealmeUnsupportedBindingError < Error; end
+
       include OmniAuth::Strategy
 
       RCMS_LAT_NAME = 'urn:nzl:govt:ict:stds:authn:safeb64:logon_attributes_jwt'
@@ -18,29 +39,45 @@ module OmniAuth
         redirect req.create(saml_settings, 'SigAlg' => 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256')
       end
 
-      def callback_phase # rubocop:disable Metrics/AbcSize
+      def callback_phase # rubocop:disable Metrics/AbcSize, Metrics/MethodLength, Metrics/PerceivedComplexity
         response = ::OneLogin::RubySaml::Response.new(request.params['SAMLResponse'],
                                                       settings: saml_settings,
                                                       allowed_clock_drift: allowed_clock_drift)
 
+        ##
+        # If the Realme Context Mapping Service (RCMS) is enabled in Realme
+        # for our app then we will get a RCMS Login Access Token in the
+        # SAMLResponse.
+        #
+        # We save the token if it exists. See
+        # https://developers.realme.govt.nz/how-realme-works/whats-realme-rcms/
+        #
         if response.is_valid?
-          @uid = response.nameid
-          session[:uid] = response.nameid
-
-          ##
-          # If the Realme Context Mapping Service (RCMS) is enabled in Realme
-          # for our app then we will get a RCMS Login Access Token in the
-          # SAMLResponse.
-          #
-          # We save the token if it exists. See
-          # https://developers.realme.govt.nz/how-realme-works/whats-realme-rcms/
-          #
           @realme_cms_lat = response.attributes[RCMS_LAT_NAME] if response.attributes[RCMS_LAT_NAME]
+        end
+
+        if legacy_rails_session_behaviour_enabled?
+          OmniAuth.logger.info "Deprecation: omniauth-realme will stop putting values via Rails `session` in a future version. Use request.env['omniauth.auth'] instead." # rubocop:disable Layout/LineLength
+
+          if response.is_valid?
+            session[:uid] = response.nameid
+          else
+            session[:realme_error] = {
+              error: response.errors.join[/=> (\S+) ->/, 1],
+              message: default_error_messages_for_rails_session(response.errors.join)
+            }
+          end
         else
-          session[:realme_error] = {
-            error: response.errors.join[/=> (\S+) ->/, 1],
-            message: default_error_messages(response.errors.join)
-          }
+          if response.is_valid? # rubocop:disable Style/IfInsideElse
+            @uid = response.nameid
+          else
+            exception = create_exception_for(status_code: response.status_code, message: response.status_message.strip)
+            exception_label = exception.class.to_s.gsub('::', '_')
+
+            # fail!() returns a rack response which this callback must also
+            # return if OmniAuth error handling is to work correctly.
+            return fail!(exception_label, exception)
+          end
         end
 
         super
@@ -111,11 +148,45 @@ module OmniAuth
 
       private
 
+      ##
+      # Realme documents the various error conditions it can return:
+      #
+      # https://developers.realme.govt.nz/how-realme-works/realme-saml-exception-handling/
+      #
+      def create_exception_for(status_code:, message:) # rubocop:disable Metrics/MethodLength, Metrics/CyclomaticComplexity
+        case status_code
+        when /status:Timeout\z/
+          RealmeTimeoutError.new(message)
+        when /status:InternalError\z/
+          RealmeInternalError.new(message)
+        when /status:AuthnFailed\z/
+          RealmeAuthnFailedError.new(message)
+        when /status:NoAvailableIDP\z/
+          RealmeNoAvailableIDPError.new(message)
+        when /status:NoPassive\z/
+          RealmeNoPassiveError.new(message)
+        when /status:RequestDenied\z/
+          RealmeRequestDeniedError.new(message)
+        when /status:RequestUnsupported\z/
+          RealmeRequestUnsupportedError.new(message)
+        when /status:UnknownPrincipal\z/
+          RealmeUnknownPrincipalError.new(message)
+        when /status:UnsupportedBinding\z/
+          RealmeUnsupportedBindingError.new(message)
+        else
+          RealmeUnrecognisedError.new("Realme login service returned an unrecognised error. status_code=#{status_code} message=#{message}")
+        end
+      end
+
       def allowed_clock_drift
         options.fetch('allowed_clock_drift', 0)
       end
 
-      def default_error_messages(error)
+      def legacy_rails_session_behaviour_enabled?
+        options.fetch('legacy_rails_session_behaviour_enabled', true)
+      end
+
+      def default_error_messages_for_rails_session(error)
         case error
         when /Timeout/
           '<p>Your RealMe session has expired due to inactivity.</p>'
