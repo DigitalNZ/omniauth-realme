@@ -165,7 +165,8 @@ module Users
     skip_before_action :verify_authenticity_token
 
     def realme
-      @user = User.from_omniauth('realme', session.delete(:uid))
+      realme_flt_token = request.env["omniauth.auth"]["uid"]
+      @user = User.from_omniauth('realme', realme_flt_token)
 
       unless @user.valid?
         @user.errors.each { |err| @user.errors.delete(err) }
