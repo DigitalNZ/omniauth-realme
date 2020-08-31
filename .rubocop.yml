@@ -9,6 +9,9 @@ Style/HashTransformKeys:
 Style/HashTransformValues:
   Enabled: false
 
+Metrics/ClassLength:
+  Max: 120
+
 Metrics/BlockLength:
   Exclude:
     - "spec/**/*" # specs can have long blocks
