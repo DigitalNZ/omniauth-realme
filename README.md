@@ -56,7 +56,7 @@ Realme provides the necessary `service-metadata.xml` files for their side of the
 OmniAuth.config.on_failure = Proc.new { |env| OmniAuthCallbacksController.action(:failure).call(env) }
 
 OmniAuth.configure do |config|
-  # Always wedirect to the failure endpoint if there is an error. Normally the
+  # Always redirect to the failure endpoint if there is an error. Normally the
   # exception would just be raised in development mode. This is useful for
   # testing your Realme error handling in development.
   config.failure_raise_out_environments = []
