@@ -56,7 +56,7 @@ Realme provides the necessary `service-metadata.xml` files for their side of the
 OmniAuth.config.on_failure = Proc.new { |env| OmniAuthCallbacksController.action(:failure).call(env) }
 
 OmniAuth.configure do |config|
-  # Always wedirect to the failure endpoint if there is an error. Normally the
+  # Always redirect to the failure endpoint if there is an error. Normally the
   # exception would just be raised in development mode. This is useful for
   # testing your Realme error handling in development.
   config.failure_raise_out_environments = []
@@ -165,10 +165,8 @@ module Users
     skip_before_action :verify_authenticity_token
 
     def realme
-      # If you sent any relay state to Realme then you can retrieve it
-      relay_state = request.env["omniauth.auth"]["extra"]["relay_state"]
-
-      @user = User.from_omniauth('realme', session.delete(:uid))
+      realme_flt_token = request.env["omniauth.auth"]["uid"]
+      @user = User.from_omniauth('realme', realme_flt_token)
 
       unless @user.valid?
         @user.errors.each { |err| @user.errors.delete(err) }
