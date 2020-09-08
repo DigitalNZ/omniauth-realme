@@ -117,6 +117,29 @@ RSpec.describe OmniAuth::Strategies::Realme do
       # way each time (e.g. order of attributes is the same).
       expect(actual_saml_request_xml.to_s).to eq(expected_saml_request_xml.to_s)
     end
+
+    context 'when valid Relay State value is provided' do
+      let(:valid_relay_state) { 'aabbcc' }
+
+      it 'sends the relay state to Realme' do
+        response = get('/auth/realme', { relay_state: valid_relay_state })
+
+        query_params = CGI.parse(URI(response.headers['Location']).query)
+        actual_relay_state = query_params.fetch('RelayState').first
+
+        expect(actual_relay_state).to eq(valid_relay_state)
+      end
+    end
+
+    context 'when invalid Relay State value is provided' do
+      let(:too_long_relay_state) { 'x' * 81 }
+
+      it 'redirects to the OmniAuth failure rack app' do
+        response = get('/auth/realme', { relay_state: too_long_relay_state })
+
+        expect(response.headers['Location']).to eq('/auth/failure?message=OmniAuth_Strategies_Realme_RelayStateTooLongError&strategy=realme')
+      end
+    end
   end
 
   describe '#callback_phase' do
@@ -163,6 +186,38 @@ RSpec.describe OmniAuth::Strategies::Realme do
                                                             .and_return(fake_ruby_saml_response)
 
         response = get('/auth/realme/callback', SAMLResponse: raw_saml_response)
+
+        expect(response['omniauth.auth']).to eq(expected_omniauth_auth)
+      end
+    end
+
+    context 'when we send relay state to Realme' do
+      let(:expected_relay_state) { 'some-relay-state' }
+      let(:fake_ruby_saml_response) do
+        double('OneLogin::RubySaml::Response',
+               is_valid?: true,
+               nameid: expected_realme_flt,
+               attributes: { 'RelayState' => expected_relay_state })
+      end
+
+      let(:expected_omniauth_auth) do
+        {
+          'provider' => 'realme',
+          'uid' => expected_realme_flt,
+          'info' => {},
+          'credentials' => {},
+          'extra' => {
+            'relay_state' => expected_relay_state
+          }
+        }
+      end
+
+      it 'relay state from Realme is put in "extra" within "omniauth.auth"' do
+        allow(OneLogin::RubySaml::Response).to receive(:new).with(raw_saml_response,
+                                                                  hash_including(allowed_clock_drift: expected_clock_drift))
+                                                            .and_return(fake_ruby_saml_response)
+
+        response = get('/auth/realme/callback', { SAMLResponse: raw_saml_response, RelayState: expected_relay_state })
 
         expect(response['omniauth.auth']).to eq(expected_omniauth_auth)
       end

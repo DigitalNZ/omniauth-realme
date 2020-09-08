@@ -6,6 +6,9 @@ require 'ruby-saml'
 module OmniAuth
   module Strategies
     class Realme
+      class Error < StandardError; end
+      class RelayStateTooLongError < Error; end
+
       ##
       # Create an exception for each documented Realme error
       # (https://developers.realme.govt.nz/how-realme-works/realme-saml-exception-handling/).
@@ -14,7 +17,6 @@ module OmniAuth
       # so a caller can rescue that if they want to rescue all exceptions from
       # this class.
       #
-      class Error                         < StandardError; end
       class RealmeAuthnFailedError        < Error; end
       class RealmeInternalError           < Error; end
       class RealmeInternalError           < Error; end
@@ -31,20 +33,55 @@ module OmniAuth
 
       RCMS_LAT_NAME = 'urn:nzl:govt:ict:stds:authn:safeb64:logon_attributes_jwt'
 
+      # The SAML spec says the maximum length of the RelayState is 80
+      # bytes. See section 3.4.3 of
+      # http://docs.oasis-open.org/security/saml/v2.0/saml-bindings-2.0-os.pdf
+      MAX_LENGTH_OF_RELAY_STATE = 80 # bytes
+
       # Fixed OmniAuth options
       option :provider, 'realme'
 
       def request_phase
+        req_options = { 'SigAlg' => 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256' }
+
+        ##
+        # If we recieved a `relay_state` param e.g. we were invoked like:
+        #
+        #   redirect_to user_realme_omniauth_authorize_path(relay_state: 'some_value')
+        #
+        # then we pass it to Realme (via RubySaml). Realme (as a SAML IdP)
+        # should return that value unaltered when it redirects back to this
+        # application and `#callback_phase` below is executed.
+        #
+        if request.params['relay_state']
+          if request.params['relay_state'].length > MAX_LENGTH_OF_RELAY_STATE
+            ex = RelayStateTooLongError.new('RelayState exceeds SAML spec max length of 80 bytes')
+
+            # fail!() returns a rack response which this callback must also
+            # return if OmniAuth error handling is to work correctly.
+            return fail!(create_label_for(ex), ex)
+          end
+
+          req_options['RelayState'] = request.params['relay_state']
+        end
+
         req = OneLogin::RubySaml::Authrequest.new
-        redirect req.create(saml_settings, 'SigAlg' => 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256')
+        redirect req.create(saml_settings, req_options)
       end
 
-      def callback_phase # rubocop:disable Metrics/AbcSize, Metrics/MethodLength, Metrics/PerceivedComplexity
+      def callback_phase # rubocop:disable Metrics/PerceivedComplexity, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/AbcSize
         response = ::OneLogin::RubySaml::Response.new(request.params['SAMLResponse'],
                                                       settings: saml_settings,
                                                       allowed_clock_drift: allowed_clock_drift)
 
         ##
+        # `RelayState` is an arbitrary string (length < 80 characters). If we
+        # sent it to Realme with the SAMLRequest then Realme will return it unaltered.
+        #
+        # If we receive any relay state then we save it.
+        #
+        @relay_state = request.params['RelayState'] if request.params['RelayState']
+
         # If the Realme Context Mapping Service (RCMS) is enabled in Realme
         # for our app then we will get a RCMS Login Access Token in the
         # SAMLResponse.
@@ -71,12 +108,11 @@ module OmniAuth
           if response.is_valid? # rubocop:disable Style/IfInsideElse
             @uid = response.nameid
           else
-            exception = create_exception_for(status_code: response.status_code, message: response.status_message.strip)
-            exception_label = exception.class.to_s.gsub('::', '_')
+            ex = create_exception_for(status_code: response.status_code, message: response.status_message.strip)
 
             # fail!() returns a rack response which this callback must also
             # return if OmniAuth error handling is to work correctly.
-            return fail!(exception_label, exception)
+            return fail!(create_label_for(ex), ex)
           end
         end
 
@@ -95,6 +131,20 @@ module OmniAuth
       credentials do
         output = {}
         output[:realme_cms_lat] = @realme_cms_lat if @realme_cms_lat
+        output
+      end
+
+      ##
+      # The `extra` Hash will be placed within the `request["omniauth.auth"]`
+      # Hash that `OmniAuth::Strategy` builds. See
+      # https://github.com/omniauth/omniauth/wiki/Auth-Hash-Schema
+      #
+      # `extra` contains anything which isn't information about the user or a
+      # user credential.
+      #
+      extra do
+        output = {}
+        output[:relay_state] = @relay_state if @relay_state
         output
       end
 
@@ -176,6 +226,21 @@ module OmniAuth
         else
           RealmeUnrecognisedError.new("Realme login service returned an unrecognised error. status_code=#{status_code} message=#{message}")
         end
+      end
+
+      ##
+      # The OmniAuth failure endpoint requires us to pass an instance of an
+      # Exception and a String|Symbol describing the error. This method builds
+      # a simple description based on class of the exception.
+      #
+      # This gem can be used in any Rack environment so we don't use any Rails
+      # specific text wrangling methods
+      #
+      # @param [Exception] exception The exception to describe
+      # @return [String] The label describing the exception
+      #
+      def create_label_for(exception)
+        exception.class.to_s.gsub('::', '_')
       end
 
       def allowed_clock_drift
