@@ -108,7 +108,8 @@ module OmniAuth
           if response.is_valid? # rubocop:disable Style/IfInsideElse
             @uid = response.nameid
           else
-            ex = create_exception_for(status_code: response.status_code, message: response.status_message.strip)
+            msg = response.status_message ? response.status_message.strip : ''
+            ex = create_exception_for(status_code: response.status_code, message: msg)
 
             # fail!() returns a rack response which this callback must also
             # return if OmniAuth error handling is to work correctly.
