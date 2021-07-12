@@ -5,5 +5,6 @@ source 'https://rubygems.org'
 # Specify your gem's dependencies in omniauth-realme.gemspec
 gemspec
 
+gem 'nokogiri', '>= 1.11.4'
 gem 'rake', '~> 12.0'
 gem 'rspec', '~> 3.0'

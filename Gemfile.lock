@@ -18,8 +18,8 @@ GEM
     macaddr (1.7.2)
       systemu (~> 2.6.5)
     method_source (1.0.0)
-    mini_portile2 (2.5.0)
-    nokogiri (1.11.1)
+    mini_portile2 (2.5.3)
+    nokogiri (1.11.7)
       mini_portile2 (~> 2.5.0)
       racc (~> 1.4)
     omniauth (1.9.1)
@@ -77,6 +77,7 @@ PLATFORMS
 
 DEPENDENCIES
   bundler
+  nokogiri (>= 1.11.4)
   omniauth-realme!
   pry-byebug
   rack-test
