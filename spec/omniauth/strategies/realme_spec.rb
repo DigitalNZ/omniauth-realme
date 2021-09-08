@@ -1,11 +1,14 @@
 # frozen_string_literal: true
 
+require 'pry'
+
 RSpec.describe OmniAuth::Strategies::Realme do
   let(:idp_metadata_path) { File.join(__dir__, '../../fixtures/realme_mts_idp_metadata.xml') }
   let(:expected_clock_drift) { 7 }
   let(:assertion_consumer_service_url) { 'http://www.example.com/auth/anything' }
   let(:issuer) { 'Anything' }
   let(:legacy_rails_session_behaviour_enabled) { nil } # use whatever the default is
+  let(:limit_relay_state) { true }
   let(:realme_strategy_options) do
     p12 = OpenSSL::PKCS12.new(File.read(File.join(__dir__, '../../fixtures/mts_saml_sp.p12')), 'password')
 
@@ -16,7 +19,8 @@ RSpec.describe OmniAuth::Strategies::Realme do
       certificate: p12.certificate.to_s,
       assertion_consumer_service_url: assertion_consumer_service_url,
       allowed_clock_drift: expected_clock_drift,
-      legacy_rails_session_behaviour_enabled: legacy_rails_session_behaviour_enabled
+      legacy_rails_session_behaviour_enabled: legacy_rails_session_behaviour_enabled,
+      limit_relay_state: limit_relay_state
     }
   end
 
@@ -138,6 +142,20 @@ RSpec.describe OmniAuth::Strategies::Realme do
         response = get('/auth/realme', { relay_state: too_long_relay_state })
 
         expect(response.headers['Location']).to eq('/auth/failure?message=OmniAuth_Strategies_Realme_RelayStateTooLongError&strategy=realme')
+      end
+    end
+
+    context 'when long Relay State value is provided with limit_relay_state = false' do
+      let(:limit_relay_state) { false }
+      let(:long_relay_state) { 'x' * 81 }
+
+      it 'sends the long relay state to Realme' do
+        response = get('/auth/realme', { relay_state: long_relay_state })
+
+        query_params = CGI.parse(URI(response.headers['Location']).query)
+        actual_relay_state = query_params.fetch('RelayState').first
+
+        expect(actual_relay_state).to eq(long_relay_state)
       end
     end
   end

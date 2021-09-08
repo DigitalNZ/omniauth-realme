@@ -252,6 +252,8 @@ module OmniAuth
         options.fetch('legacy_rails_session_behaviour_enabled', true)
       end
 
+      # Many providers including RealMe don't limit the RelayState option
+      # so allow the limit to be disabled
       def limit_relay_state?
         options.fetch('limit_relay_state', true)
       end
