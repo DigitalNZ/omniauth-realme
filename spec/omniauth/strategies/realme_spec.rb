@@ -33,7 +33,7 @@ RSpec.describe OmniAuth::Strategies::Realme do
       b.use Rack::Session::Cookie, secret: 'abc123'
       b.use Rack::Protection::AuthenticityToken
       b.use OmniAuth::Strategies::Realme, options
-      # todo make token available on a get /token route
+      # TODO: make token available on a get /token route
       b.run ->(env) { [200, env, [Rack::Protection::AuthenticityToken.token(env['rack.session'])]] }
     end.to_app
   end
