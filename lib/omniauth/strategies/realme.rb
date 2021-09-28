@@ -2,7 +2,6 @@
 
 require 'omniauth'
 require 'ruby-saml'
-require 'pry-byebug'
 
 module OmniAuth
   module Strategies
