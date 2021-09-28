@@ -6,6 +6,5 @@ source 'https://rubygems.org'
 gemspec
 
 gem 'nokogiri', '>= 1.12.5'
-gem 'omniauth-rails_csrf_protection', '~> 1.0'
 gem 'rake', '~> 13.0.6'
 gem 'rspec', '~> 3.10.0'
