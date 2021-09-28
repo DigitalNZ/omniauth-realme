@@ -9,42 +9,13 @@ PATH
 GEM
   remote: https://rubygems.org/
   specs:
-    actionpack (6.1.4.1)
-      actionview (= 6.1.4.1)
-      activesupport (= 6.1.4.1)
-      rack (~> 2.0, >= 2.0.9)
-      rack-test (>= 0.6.3)
-      rails-dom-testing (~> 2.0)
-      rails-html-sanitizer (~> 1.0, >= 1.2.0)
-    actionview (6.1.4.1)
-      activesupport (= 6.1.4.1)
-      builder (~> 3.1)
-      erubi (~> 1.4)
-      rails-dom-testing (~> 2.0)
-      rails-html-sanitizer (~> 1.1, >= 1.2.0)
-    activesupport (6.1.4.1)
-      concurrent-ruby (~> 1.0, >= 1.0.2)
-      i18n (>= 1.6, < 2)
-      minitest (>= 5.1)
-      tzinfo (~> 2.0)
-      zeitwerk (~> 2.3)
     ast (2.4.0)
-    builder (3.2.4)
-    concurrent-ruby (1.1.9)
-    crass (1.0.6)
     diff-lcs (1.4.4)
-    erubi (1.10.0)
     hashie (4.1.0)
-    i18n (1.8.10)
-      concurrent-ruby (~> 1.0)
     jaro_winkler (1.5.4)
-    loofah (2.12.0)
-      crass (~> 1.0.2)
-      nokogiri (>= 1.5.9)
     macaddr (1.7.2)
       systemu (~> 2.6.5)
     mini_portile2 (2.6.1)
-    minitest (5.14.4)
     nokogiri (1.12.5)
       mini_portile2 (~> 2.6.1)
       racc (~> 1.4)
@@ -52,9 +23,6 @@ GEM
       hashie (>= 3.4.6)
       rack (>= 1.6.2, < 3)
       rack-protection
-    omniauth-rails_csrf_protection (1.0.0)
-      actionpack (>= 4.2)
-      omniauth (~> 2.0)
     parallel (1.19.1)
     parser (2.7.0.2)
       ast (~> 2.4.0)
@@ -64,11 +32,6 @@ GEM
       rack
     rack-test (1.1.0)
       rack (>= 1.0, < 3)
-    rails-dom-testing (2.0.3)
-      activesupport (>= 4.2.0)
-      nokogiri (>= 1.6)
-    rails-html-sanitizer (1.4.2)
-      loofah (~> 2.3)
     rainbow (3.0.0)
     rake (13.0.6)
     rexml (3.2.5)
@@ -100,12 +63,9 @@ GEM
       nokogiri (>= 1.10.5)
       rexml
     systemu (2.6.5)
-    tzinfo (2.0.4)
-      concurrent-ruby (~> 1.0)
     unicode-display_width (1.6.1)
     uuid (2.3.9)
       macaddr (~> 1.0)
-    zeitwerk (2.4.2)
 
 PLATFORMS
   ruby
@@ -113,7 +73,6 @@ PLATFORMS
 DEPENDENCIES
   bundler
   nokogiri (>= 1.12.5)
-  omniauth-rails_csrf_protection (~> 1.0)
   omniauth-realme!
   rack-test
   rake (~> 13.0.6)
