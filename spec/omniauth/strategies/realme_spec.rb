@@ -31,8 +31,10 @@ RSpec.describe OmniAuth::Strategies::Realme do
     options = realme_strategy_options
     Rack::Builder.new do |b|
       b.use Rack::Session::Cookie, secret: 'abc123'
+      b.use Rack::Protection::AuthenticityToken
       b.use OmniAuth::Strategies::Realme, options
-      b.run ->(env) { [200, env, ['Welcome']] }
+      # todo make token available on a get /token route
+      b.run ->(env) { [200, env, [Rack::Protection::AuthenticityToken.token(env['rack.session'])]] }
     end.to_app
   end
 
@@ -57,6 +59,11 @@ RSpec.describe OmniAuth::Strategies::Realme do
   end
 
   describe '#request_phase' do
+    let(:authenticity_token) do
+      get '/token'
+      last_response.body
+    end
+
     let(:expected_saml_request) do
       <<~EO_XML
         <samlp:AuthnRequest
@@ -78,14 +85,14 @@ RSpec.describe OmniAuth::Strategies::Realme do
     end
 
     it 'generates the expected HTTP 302 Redirect to Realme' do
-      response = get('/auth/realme')
+      response = post('/auth/realme', authenticity_token: authenticity_token)
 
       expect(response.status).to eq(302)
       expect(response.headers['Location']).to match(Regexp.quote('https://mts.realme.govt.nz/logon-mts/mtsEntryPoint?SAMLRequest='))
     end
 
     it 'uses the expected signature algorithm to sign the SAMLRequest' do
-      response = get('/auth/realme')
+      response = post('/auth/realme', authenticity_token: authenticity_token)
 
       # Extract the query params from the redirect URL generated
       query_params = CGI.parse(URI.parse(response.headers['Location']).query)
@@ -94,7 +101,7 @@ RSpec.describe OmniAuth::Strategies::Realme do
     end
 
     it 'generates the expected SAMLRequest for Realme' do
-      response = get('/auth/realme')
+      response = post('/auth/realme', authenticity_token: authenticity_token)
 
       # Extract the query params from the redirect URL generated
       query_params = CGI.parse(URI.parse(response.headers['Location']).query)
@@ -122,7 +129,7 @@ RSpec.describe OmniAuth::Strategies::Realme do
       let(:valid_relay_state) { 'aabbcc' }
 
       it 'sends the relay state to Realme' do
-        response = get('/auth/realme', { relay_state: valid_relay_state })
+        response = post('/auth/realme', { authenticity_token: authenticity_token, relay_state: valid_relay_state })
 
         query_params = CGI.parse(URI(response.headers['Location']).query)
         actual_relay_state = query_params.fetch('RelayState').first
@@ -135,7 +142,7 @@ RSpec.describe OmniAuth::Strategies::Realme do
       let(:too_long_relay_state) { 'x' * 81 }
 
       it 'redirects to the OmniAuth failure rack app' do
-        response = get('/auth/realme', { relay_state: too_long_relay_state })
+        response = post('/auth/realme', { authenticity_token: authenticity_token, relay_state: too_long_relay_state })
 
         expect(response.headers['Location']).to eq('/auth/failure?message=OmniAuth_Strategies_Realme_RelayStateTooLongError&strategy=realme')
       end
@@ -143,6 +150,10 @@ RSpec.describe OmniAuth::Strategies::Realme do
   end
 
   describe '#callback_phase' do
+    let(:authenticity_token) do
+      get '/token'
+      last_response.body
+    end
     let(:raw_saml_response) { 'value can be anything because we stub & mock the return value' }
     let(:fake_ruby_saml_response) do
       double('OneLogin::RubySaml::Response',
@@ -157,7 +168,7 @@ RSpec.describe OmniAuth::Strategies::Realme do
                                                                  hash_including(allowed_clock_drift: expected_clock_drift))
                                                            .and_return(fake_ruby_saml_response)
 
-      get('/auth/realme/callback', SAMLResponse: raw_saml_response)
+      post('/auth/realme/callback', { authenticity_token: authenticity_token, SAMLResponse: raw_saml_response })
     end
 
     context 'when we receive a Realme Context Mapping Service (RCMS) Login Access Token' do
@@ -185,7 +196,7 @@ RSpec.describe OmniAuth::Strategies::Realme do
                                                                   hash_including(allowed_clock_drift: expected_clock_drift))
                                                             .and_return(fake_ruby_saml_response)
 
-        response = get('/auth/realme/callback', SAMLResponse: raw_saml_response)
+        response = post('/auth/realme/callback', { authenticity_token: authenticity_token, SAMLResponse: raw_saml_response })
 
         expect(response['omniauth.auth']).to eq(expected_omniauth_auth)
       end
@@ -217,7 +228,7 @@ RSpec.describe OmniAuth::Strategies::Realme do
                                                                   hash_including(allowed_clock_drift: expected_clock_drift))
                                                             .and_return(fake_ruby_saml_response)
 
-        response = get('/auth/realme/callback', { SAMLResponse: raw_saml_response, RelayState: expected_relay_state })
+        response = post('/auth/realme/callback', { authenticity_token: authenticity_token, SAMLResponse: raw_saml_response, RelayState: expected_relay_state })
 
         expect(response['omniauth.auth']).to eq(expected_omniauth_auth)
       end
@@ -242,7 +253,7 @@ RSpec.describe OmniAuth::Strategies::Realme do
                                                                     hash_including(allowed_clock_drift: expected_clock_drift))
                                                               .and_return(fake_ruby_saml_response)
 
-          response = get('/auth/realme/callback', SAMLResponse: raw_saml_response)
+          response = post('/auth/realme/callback', { authenticity_token: authenticity_token, SAMLResponse: raw_saml_response })
 
           expect(response['rack.session']['uid']).to eq(expected_realme_flt)
         end
@@ -262,7 +273,7 @@ RSpec.describe OmniAuth::Strategies::Realme do
                                                                     hash_including(allowed_clock_drift: expected_clock_drift))
                                                               .and_return(error_ruby_saml_response)
 
-          response = get('/auth/realme/callback', SAMLResponse: raw_saml_response)
+          response = post('/auth/realme/callback', { authenticity_token: authenticity_token, SAMLResponse: raw_saml_response })
 
           expect(response['rack.session']['realme_error'][:error]).to eq(nil)
           expect(response['rack.session']['realme_error'][:message]).to match(/RealMe reported a serious application error with the message/)
@@ -290,7 +301,7 @@ RSpec.describe OmniAuth::Strategies::Realme do
                                                                       hash_including(allowed_clock_drift: expected_clock_drift))
                                                                 .and_return(fake_ruby_saml_response)
 
-            response = get('/auth/realme/callback', SAMLResponse: raw_saml_response)
+            response = post('/auth/realme/callback', { authenticity_token: authenticity_token, SAMLResponse: raw_saml_response })
 
             expect(response['omniauth.auth']).to eq(expected_omniauth_auth)
           end
@@ -311,7 +322,7 @@ RSpec.describe OmniAuth::Strategies::Realme do
                                                                     hash_including(allowed_clock_drift: expected_clock_drift))
                                                               .and_return(error_ruby_saml_response)
 
-          response = get('/auth/realme/callback', SAMLResponse: raw_saml_response)
+          response = post('/auth/realme/callback', { authenticity_token: authenticity_token, SAMLResponse: raw_saml_response })
 
           expect(response.headers['Location']).to eq('/auth/failure?message=OmniAuth_Strategies_Realme_RealmeAuthnFailedError&strategy=realme')
         end
