@@ -43,6 +43,7 @@ module OmniAuth
 
       def request_phase
         req_options = { 'SigAlg' => 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256' }
+
         ##
         # If we recieved a `relay_state` param e.g. we were invoked like:
         #

@@ -2,6 +2,6 @@
 
 module OmniAuth
   module Realme
-    VERSION = '0.2.3'
+    VERSION = '2.0.0'
   end
 end
