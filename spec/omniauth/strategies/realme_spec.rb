@@ -158,7 +158,7 @@ RSpec.describe OmniAuth::Strategies::Realme do
       let(:long_relay_state) { 'x' * 81 }
 
       it 'sends the long relay state to Realme' do
-        response = get('/auth/realme', { relay_state: long_relay_state })
+        response = post('/auth/realme', { authenticity_token: authenticity_token, relay_state: long_relay_state })
 
         query_params = CGI.parse(URI(response.headers['Location']).query)
         actual_relay_state = query_params.fetch('RelayState').first
