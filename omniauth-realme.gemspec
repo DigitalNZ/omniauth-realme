@@ -28,9 +28,9 @@ Gem::Specification.new do |spec|
   spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
   spec.require_paths = ['lib']
 
-  spec.add_dependency 'omniauth', '~> 1.0'
-  spec.add_dependency 'ruby-saml', '~> 1.5'
-  spec.add_dependency 'uuid', '~> 2.0'
+  spec.add_dependency 'omniauth', '~> 2.0.4'
+  spec.add_dependency 'ruby-saml', '~> 1.13.0'
+  spec.add_dependency 'uuid', '~> 2.3.9'
 
   spec.add_development_dependency 'bundler'
   spec.add_development_dependency 'pry-byebug'
