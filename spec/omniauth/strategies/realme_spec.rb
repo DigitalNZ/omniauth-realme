@@ -19,6 +19,7 @@ RSpec.describe OmniAuth::Strategies::Realme do
       legacy_rails_session_behaviour_enabled: legacy_rails_session_behaviour_enabled
     }
   end
+  # due to using post, we need an authenticity token
   let(:authenticity_token) do
     get '/token'
     last_response.body
