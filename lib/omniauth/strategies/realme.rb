@@ -54,7 +54,7 @@ module OmniAuth
         # application and `#callback_phase` below is executed.
         #
         if request.params['relay_state']
-          if request.params['relay_state'].length > MAX_LENGTH_OF_RELAY_STATE
+          if limit_relay_state? && request.params['relay_state'].length > MAX_LENGTH_OF_RELAY_STATE
             ex = RelayStateTooLongError.new('RelayState exceeds SAML spec max length of 80 bytes')
 
             # fail!() returns a rack response which this callback must also
@@ -250,6 +250,12 @@ module OmniAuth
 
       def legacy_rails_session_behaviour_enabled?
         options.fetch('legacy_rails_session_behaviour_enabled', true)
+      end
+
+      # Many providers including RealMe don't limit the RelayState option
+      # so allow the limit to be disabled
+      def limit_relay_state?
+        options.fetch('limit_relay_state', true)
       end
 
       def default_error_messages_for_rails_session(error)
