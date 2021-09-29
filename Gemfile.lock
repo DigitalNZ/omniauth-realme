@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    omniauth-realme (2.0.0)
+    omniauth-realme (2.1.0)
       omniauth (~> 2.0.4)
       ruby-saml (~> 1.13.0)
       uuid (~> 2.3.9)
