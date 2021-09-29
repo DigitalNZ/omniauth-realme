@@ -29,12 +29,14 @@ RSpec.describe OmniAuth::Strategies::Realme do
     #   session_middleware -> strategy_middleware -> dummy_welcome_app
     #
     options = realme_strategy_options
-    Rack::Builder.new do |b|
-      b.use Rack::Session::Cookie, secret: 'abc123'
-      b.use Rack::Protection::AuthenticityToken
-      b.use OmniAuth::Strategies::Realme, options
-      # TODO: make token available on a get /token route
-      b.run ->(env) { [200, env, [Rack::Protection::AuthenticityToken.token(env['rack.session'])]] }
+    Rack::Builder.new do
+      use Rack::Session::Cookie, secret: 'abc123'
+      use Rack::Protection::AuthenticityToken
+      use OmniAuth::Strategies::Realme, options
+      run(lambda do |env|
+        body = Rack::Protection::AuthenticityToken.token(env['rack.session']) if env['PATH_INFO'] == '/token'
+        [200, env, [body || 'Welcome']]
+      end)
     end.to_app
   end
 
