@@ -19,6 +19,10 @@ RSpec.describe OmniAuth::Strategies::Realme do
       legacy_rails_session_behaviour_enabled: legacy_rails_session_behaviour_enabled
     }
   end
+  let(:authenticity_token) do
+    get '/token'
+    last_response.body
+  end
 
   # Rack::Test helper methods expect the Rack app they are testing to be in `app`
   let(:app) do
@@ -61,11 +65,6 @@ RSpec.describe OmniAuth::Strategies::Realme do
   end
 
   describe '#request_phase' do
-    let(:authenticity_token) do
-      get '/token'
-      last_response.body
-    end
-
     let(:expected_saml_request) do
       <<~EO_XML
         <samlp:AuthnRequest
@@ -152,10 +151,6 @@ RSpec.describe OmniAuth::Strategies::Realme do
   end
 
   describe '#callback_phase' do
-    let(:authenticity_token) do
-      get '/token'
-      last_response.body
-    end
     let(:raw_saml_response) { 'value can be anything because we stub & mock the return value' }
     let(:fake_ruby_saml_response) do
       double('OneLogin::RubySaml::Response',
