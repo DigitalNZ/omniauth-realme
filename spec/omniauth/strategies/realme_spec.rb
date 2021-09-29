@@ -23,6 +23,7 @@ RSpec.describe OmniAuth::Strategies::Realme do
       limit_relay_state: limit_relay_state
     }
   end
+  # due to using post, we need an authenticity token
   let(:authenticity_token) do
     get '/token'
     last_response.body
