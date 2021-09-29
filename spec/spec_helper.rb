@@ -3,6 +3,7 @@
 require 'bundler/setup'
 require 'omniauth/realme'
 require 'rack/test'
+require 'pry-byebug'
 
 RSpec.configure do |config|
   config.include Rack::Test::Methods
