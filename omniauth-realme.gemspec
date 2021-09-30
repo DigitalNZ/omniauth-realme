@@ -29,6 +29,7 @@ Gem::Specification.new do |spec|
   spec.require_paths = ['lib']
 
   spec.add_dependency 'omniauth', '~> 2.0.4'
+  spec.add_dependency 'omniauth-rails_csrf_protection', '~> 1.0.0'
   spec.add_dependency 'ruby-saml', '~> 1.13.0'
   spec.add_dependency 'uuid', '~> 2.3.9'
 
