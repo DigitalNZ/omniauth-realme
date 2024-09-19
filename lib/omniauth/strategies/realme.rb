@@ -5,7 +5,7 @@ require 'ruby-saml'
 
 module OmniAuth
   module Strategies
-    class Realme
+    class Realme # rubocop:disable Metrics/ClassLength
       class Error < StandardError; end
       class RelayStateTooLongError < Error; end
 
